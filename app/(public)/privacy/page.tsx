@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           <p>You have the right to access, correct, or delete your personal data. You may also opt out of marketing communications at any time. To exercise these rights, contact us at <a href="mailto:privacy@primeaxis.in">privacy@primeaxis.in</a>.</p>
           <h2>7. Contact Us</h2>
           <p>If you have questions about this Privacy Policy, please contact us:</p>
-          <ul><li>Email: <a href="mailto:privacy@primeaxis.in">privacy@primeaxis.in</a></li><li>Phone: <a href="tel:+919511802062">+91 9511802062</a></li><li>Address: PrimeAxis Realty, Office 101, Premium Business Park, Baner Road, Pune - 411045</li></ul>
+          <ul><li>Email: <a href="mailto:privacy@primeaxis.in">privacy@primeaxis.in</a></li><li>Phone: <a href="tel:+919511802062">+91 9511802062</a></li><li>Address: PrimeAxis Realty, Office 101, Premium Business Park, Baner Road, Jalgaon - 411045</li></ul>
         </div>
         <div className="mt-8"><Link href="/" className="text-primary dark:text-gold hover:underline">&larr; Back to Home</Link></div>
       </div>

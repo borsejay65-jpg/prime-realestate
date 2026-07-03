@@ -123,7 +123,7 @@ export default function PropertyDetailPage() {
               <h2 className="font-display text-2xl font-bold text-gray-800 dark:text-white mb-4">Location</h2>
               <div className="rounded-2xl overflow-hidden shadow-card">
                 <iframe
-                  src={property.map_embed_url || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3782.019073773987!2d73.83291021485!3d18.559473787381!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2bf61fdc6f!2sBaner%2C+Pune!5e0!3m2!1sen!2sin'}
+                  src={property.map_embed_url || 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3782.019073773987!2d73.83291021485!3d18.559473787381!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2bf61fdc6f!2sBaner%2C+Jalgaon!5e0!3m2!1sen!2sin'}
                   width="100%" height="350" style={{ border: 0 }} allowFullScreen loading="lazy" title="Property Location" />
               </div>
             </div>

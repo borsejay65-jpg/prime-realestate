@@ -12,7 +12,7 @@ const initialSlides: Slide[] = [
   {
     id: '1',
     title: 'Find Your Dream Property Today',
-    subtitle: 'Premium properties in Pune starting from 80 Lakhs',
+    subtitle: 'Premium properties in Jalgaon starting from 80 Lakhs',
     image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&h=1080&fit=crop',
     button_text: 'View Properties',
     button_url: '/properties',

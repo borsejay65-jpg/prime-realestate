@@ -166,7 +166,7 @@ export default function AdminTestimonialsPage() {
                   <input
                     type="text"
                     className="input"
-                    placeholder="e.g. Baner, Pune"
+                    placeholder="e.g. Baner, Jalgaon"
                     value={form.location}
                     onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
                   />

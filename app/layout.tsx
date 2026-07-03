@@ -22,19 +22,19 @@ const playfair = Playfair_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'PrimeAxis | Premium Real Estate Brokerage in Pune',
+  title: 'PrimeAxis | Premium Real Estate Brokerage in Jalgaon',
   description:
-    'PrimeAxis Realty is Pune\'s premier real estate brokerage specializing in luxury properties, premium residences, commercial spaces, and investment opportunities. Find your dream property with expert guidance.',
+    'PrimeAxis Realty is Jalgaon\'s premier real estate brokerage specializing in luxury properties, premium residences, commercial spaces, and investment opportunities. Find your dream property with expert guidance.',
   keywords: [
-    'real estate Pune',
-    'luxury properties Pune',
+    'real estate Jalgaon',
+    'luxury properties Jalgaon',
     'premium real estate',
     'PrimeAxis',
-    'Pune properties',
-    'buy property Pune',
-    'luxury villas Pune',
-    'apartments Pune',
-    'commercial space Pune',
+    'Jalgaon properties',
+    'buy property Jalgaon',
+    'luxury villas Jalgaon',
+    'apartments Jalgaon',
+    'commercial space Jalgaon',
     'real estate brokerage',
     'RERA registered',
     'Baner properties',
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
     'Wakad properties',
   ],
   openGraph: {
-    title: 'PrimeAxis | Premium Real Estate Brokerage in Pune',
+    title: 'PrimeAxis | Premium Real Estate Brokerage in Jalgaon',
     description:
-      'Pune\'s premier real estate brokerage specializing in luxury properties, premium residences, and commercial spaces.',
+      'Jalgaon\'s premier real estate brokerage specializing in luxury properties, premium residences, and commercial spaces.',
     url: 'https://primeaxis.in',
     siteName: 'PrimeAxis Realty',
     locale: 'en_IN',
@@ -60,9 +60,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'PrimeAxis | Premium Real Estate Brokerage in Pune',
+    title: 'PrimeAxis | Premium Real Estate Brokerage in Jalgaon',
     description:
-      'Pune\'s premier real estate brokerage specializing in luxury properties, premium residences, and commercial spaces.',
+      'Jalgaon\'s premier real estate brokerage specializing in luxury properties, premium residences, and commercial spaces.',
   },
   robots: {
     index: true,

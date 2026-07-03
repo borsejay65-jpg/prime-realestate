@@ -41,40 +41,40 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/30 to-black/70" />
 
       <motion.div variants={container} initial="hidden" animate="show"
-        className="relative z-10 flex flex-col items-center justify-center text-center text-white px-4 max-w-5xl mx-auto">
-        <motion.p variants={item} className="text-gold uppercase tracking-[0.3em] text-sm font-semibold mb-4">
+        className="relative z-10 flex flex-col items-center justify-center text-center text-white px-4 max-w-5xl mx-auto pt-20">
+        <motion.p variants={item} className="text-gold uppercase tracking-[0.2em] text-xs sm:text-sm font-semibold mb-3">
           Premium Real Estate Brokerage
         </motion.p>
-        <motion.h1 variants={item} className="font-display text-5xl md:text-7xl lg:text-8xl font-bold leading-tight mb-6">
+        <motion.h1 variants={item} className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-4 tracking-tight">
           Find Your Dream<br />Property Today
         </motion.h1>
-        <motion.p variants={item} className="text-lg md:text-xl text-white/80 max-w-2xl mb-8">
-          Your trusted partner for premium properties in Pune. Verified listings, expert guidance, and the best deals on residential & commercial real estate.
+        <motion.p variants={item} className="text-sm sm:text-base md:text-lg text-white/85 max-w-xl mb-6 leading-relaxed">
+          Your trusted partner for premium properties in Jalgaon. Verified listings, expert guidance, and the best deals on residential & commercial real estate.
         </motion.p>
-        <motion.div variants={item} className="flex flex-col sm:flex-row gap-4 mb-12">
+        <motion.div variants={item} className="flex flex-col sm:flex-row gap-3 mb-8 w-full sm:w-auto justify-center">
           <Link href="/properties"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-gradient-gold text-primary-900 font-semibold rounded-xl shadow-gold hover:shadow-lg hover:-translate-y-0.5 transition-all">
-            View Properties <ArrowRight className="w-5 h-5" />
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-gold text-primary-900 font-semibold rounded-xl shadow-gold hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm">
+            View Properties <ArrowRight className="w-4 h-4" />
           </Link>
           <a href="tel:+919511802062"
-            className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all">
-            <Phone className="w-5 h-5" /> Call Now
+            className="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-semibold rounded-xl hover:bg-white/20 transition-all text-sm">
+            <Phone className="w-4 h-4" /> Call Now
           </a>
         </motion.div>
 
-        <motion.div variants={item} className="w-full max-w-3xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-4">
-          <div className="flex flex-col md:flex-row gap-3">
+        <motion.div variants={item} className="w-full max-w-3xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <select value={searchType} onChange={e => setSearchType(e.target.value)}
-              className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 appearance-none">
+              className="flex-1 px-4 py-3 bg-white/15 border border-white/25 rounded-xl text-white placeholder:text-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50 appearance-none cursor-pointer">
               <option value="" className="text-gray-800">All Property Types</option>
               {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value} className="text-gray-800">{t.label}</option>)}
             </select>
             <input type="text" placeholder="Search by location..." value={searchLocation}
               onChange={e => setSearchLocation(e.target.value)}
-              className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder:text-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50" />
+              className="flex-1 px-4 py-3 bg-white/15 border border-white/25 rounded-xl text-white placeholder:text-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50" />
             <button onClick={handleSearch}
-              className="px-8 py-3 bg-gradient-gold text-primary-900 font-semibold rounded-xl hover:shadow-gold transition-all flex items-center justify-center gap-2">
-              <Search className="w-5 h-5" /> Search
+              className="px-6 py-3 bg-gradient-gold text-primary-900 font-semibold rounded-xl hover:shadow-gold transition-all flex items-center justify-center gap-2 text-sm">
+              <Search className="w-4.5 h-4.5" /> Search
             </button>
           </div>
         </motion.div>

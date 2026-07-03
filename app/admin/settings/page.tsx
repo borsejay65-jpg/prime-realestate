@@ -9,8 +9,8 @@ export default function AdminSettingsPage() {
 
   const [companyInfo, setCompanyInfo] = useState({
     name: 'PrimeAxis Realty',
-    tagline: 'Premium Real Estate Brokerage in Pune',
-    description: 'Find your dream property with Pune\'s most trusted luxury real estate firm.',
+    tagline: 'Premium Real Estate Brokerage in Jalgaon',
+    description: 'Find your dream property with Jalgaon\'s most trusted luxury real estate firm.',
     rera_number: 'P52100023456'
   })
 
@@ -18,7 +18,7 @@ export default function AdminSettingsPage() {
     phone: '+91 9511802062',
     whatsapp: '+91 9511802062',
     email: 'info@primeaxis.in',
-    address: 'Office 101, Premium Business Park, Baner Road, Pune - 411045',
+    address: 'Office 101, Premium Business Park, Baner Road, Jalgaon - 411045',
     hours: 'Mon-Sat: 9:00 AM - 7:00 PM | Sun: 10:00 AM - 5:00 PM'
   })
 

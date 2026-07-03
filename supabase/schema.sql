@@ -128,7 +128,7 @@ CREATE TABLE properties (
   
   -- Location
   address TEXT,
-  location TEXT, -- Display location like "Baner, Pune"
+  location TEXT, -- Display location like "Baner, Jalgaon"
   city TEXT,
   state TEXT DEFAULT 'Maharashtra',
   pincode TEXT,

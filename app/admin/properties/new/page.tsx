@@ -34,7 +34,7 @@ export default function NewPropertyPage() {
     possession_date: '',
     description: '',
     location: '',
-    city: 'Pune',
+    city: 'Jalgaon',
     state: 'Maharashtra',
     pincode: '',
     map_embed_url: '',

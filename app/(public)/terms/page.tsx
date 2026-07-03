@@ -10,7 +10,7 @@ export default function TermsPage() {
           <h2>1. Acceptance of Terms</h2>
           <p>By accessing and using the PrimeAxis Realty website (&ldquo;Service&rdquo;), you agree to be bound by these Terms of Service. If you do not agree, please do not use our Service.</p>
           <h2>2. Description of Services</h2>
-          <p>PrimeAxis Realty provides real estate brokerage services including property listings, buyer-seller matching, property visits, legal assistance, and loan support for properties in Pune, Maharashtra, India.</p>
+          <p>PrimeAxis Realty provides real estate brokerage services including property listings, buyer-seller matching, property visits, legal assistance, and loan support for properties in Jalgaon, Maharashtra, India.</p>
           <h2>3. User Responsibilities</h2>
           <ul><li>Provide accurate information when submitting inquiries</li><li>Use the Service for lawful purposes only</li><li>Respect the intellectual property rights of PrimeAxis Realty</li><li>Not attempt to disrupt or compromise the Service</li></ul>
           <h2>4. Property Listings</h2>
@@ -22,7 +22,7 @@ export default function TermsPage() {
           <h2>7. Intellectual Property</h2>
           <p>All content on this website, including text, images, logos, and design, is the property of PrimeAxis Realty and is protected by Indian intellectual property laws. Unauthorized reproduction or distribution is prohibited.</p>
           <h2>8. Governing Law</h2>
-          <p>These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Pune, Maharashtra.</p>
+          <p>These Terms shall be governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of the courts in Jalgaon, Maharashtra.</p>
           <h2>9. Contact Information</h2>
           <p>For questions about these Terms, contact us at <a href="mailto:legal@primeaxis.in">legal@primeaxis.in</a> or call <a href="tel:+919511802062">+91 9511802062</a>.</p>
         </div>

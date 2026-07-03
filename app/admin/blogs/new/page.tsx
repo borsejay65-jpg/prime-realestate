@@ -70,7 +70,7 @@ export default function NewBlogPostPage() {
               <input
                 type="text"
                 className="input text-lg font-semibold"
-                placeholder="e.g. 5 Things to Check Before Buying an Apartment in Pune"
+                placeholder="e.g. 5 Things to Check Before Buying an Apartment in Jalgaon"
                 value={form.title}
                 onChange={e => handleTitleChange(e.target.value)}
                 required
@@ -91,7 +91,7 @@ export default function NewBlogPostPage() {
                 <input
                   type="text"
                   className="input"
-                  placeholder="e.g. Pune, Buying Guide, RERA"
+                  placeholder="e.g. Jalgaon, Buying Guide, RERA"
                   value={form.tags}
                   onChange={e => setForm(prev => ({ ...prev, tags: e.target.value }))}
                 />
