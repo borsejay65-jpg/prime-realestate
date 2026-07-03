@@ -21,11 +21,11 @@ export default function FeaturedCarousel() {
           <p className="section-subtitle mx-auto">Handpicked premium properties for discerning buyers</p>
         </motion.div>
 
-        <div className="flex lg:grid gap-6 overflow-x-auto lg:overflow-x-visible snap-x snap-mandatory lg:snap-none pb-4 lg:pb-0 scrollbar-hide -mx-4 lg:mx-0 px-4 lg:px-0 lg:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {featured.map((property, i) => (
             <motion.div key={property.id} initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="snap-start min-w-[280px] sm:min-w-[340px] md:min-w-[380px] lg:min-w-0 flex-shrink-0 lg:flex-shrink-1">
+              className="w-full">
               <Link href={`/properties/${property.slug}`} className="card group block h-full">
                 <div className="relative aspect-[16/10] overflow-hidden">
                   <img src={property.thumbnail_url || ''} alt={property.title} loading="lazy"
