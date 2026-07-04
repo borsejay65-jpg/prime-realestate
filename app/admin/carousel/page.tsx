@@ -80,26 +80,30 @@ export default function CarouselManagementPage() {
     setUploading(true)
     
     try {
-      const supabase = createClient()
       const ext = file.name.split('.').pop()
-      const path = `carousel/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`
+      const path = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`
       
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(path, file)
-        
-      if (uploadError) throw uploadError
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(path)
-        
-      setForm(prev => ({ ...prev, media_url: publicUrl }))
-      toast.success('Media uploaded successfully!')
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1] || ''
+          const { uploadMediaAction } = await import('@/lib/actions')
+          const res = await uploadMediaAction('carousel', path, base64)
+          if (!res.success) throw new Error(res.error || 'Upload failed')
+          
+          setForm(prev => ({ ...prev, media_url: res.url! }))
+          toast.success('Media uploaded successfully!')
+        } catch (err: any) {
+          console.error(err)
+          toast.error(err.message || 'Failed to upload media')
+        } finally {
+          setUploading(false)
+        }
+      }
     } catch (err: any) {
       console.error(err)
-      toast.error('Failed to upload media file')
-    } finally {
+      toast.error('Failed to process media file')
       setUploading(false)
     }
   }
@@ -193,109 +197,111 @@ export default function CarouselManagementPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-scale-in">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-scale-in max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">{editingSlide ? 'Edit Slide' : 'Add Slide'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div>
-                <label className="label">Slide Type</label>
-                <select className="select" value={form.slide_type} onChange={e => setForm(prev => ({ ...prev, slide_type: e.target.value as any }))}>
-                  <option value="image">Image</option>
-                  <option value="video">Video</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">Headline Title *</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="e.g. Find Your Dream Property Today"
-                  value={form.title}
-                  onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <label className="label">Subtitle / Description</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="e.g. Premium properties starting from 80 Lakhs"
-                  value={form.subtitle}
-                  onChange={e => setForm(prev => ({ ...prev, subtitle: e.target.value }))}
-                />
-              </div>
-              <div>
-                <label className="label">Slide Media Image/Video File</label>
-                {form.media_url ? (
-                  <div className="relative aspect-[21/9] w-full rounded-xl overflow-hidden group border border-gray-200">
-                    <img src={form.media_url} alt="" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setForm(prev => ({ ...prev, media_url: '' }))}
-                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="border-2 border-dashed border-gray-350 dark:border-gray-700 hover:border-gold rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm font-semibold text-gray-500">{uploading ? 'Uploading...' : 'Upload Media File'}</span>
-                    <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
-                  </label>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="label">Button Text</label>
+                  <label className="label">Slide Type</label>
+                  <select className="select" value={form.slide_type} onChange={e => setForm(prev => ({ ...prev, slide_type: e.target.value as any }))}>
+                    <option value="image">Image</option>
+                    <option value="video">Video</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Headline Title *</label>
                   <input
                     type="text"
                     className="input"
-                    value={form.button_text}
-                    onChange={e => setForm(prev => ({ ...prev, button_text: e.target.value }))}
+                    placeholder="e.g. Find Your Dream Property Today"
+                    value={form.title}
+                    onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
+                    required
                   />
                 </div>
                 <div>
-                  <label className="label">Button Redirect URL</label>
+                  <label className="label">Subtitle / Description</label>
                   <input
                     type="text"
                     className="input"
-                    value={form.button_url}
-                    onChange={e => setForm(prev => ({ ...prev, button_url: e.target.value }))}
+                    placeholder="e.g. Premium properties starting from 80 Lakhs"
+                    value={form.subtitle}
+                    onChange={e => setForm(prev => ({ ...prev, subtitle: e.target.value }))}
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="label">Display Order</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={form.display_order}
-                    onChange={e => setForm(prev => ({ ...prev, display_order: Number(e.target.value) }))}
-                  />
+                  <label className="label">Slide Media Image/Video File</label>
+                  {form.media_url ? (
+                    <div className="relative aspect-[21/9] w-full rounded-xl overflow-hidden group border border-gray-200">
+                      <img src={form.media_url} alt="" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setForm(prev => ({ ...prev, media_url: '' }))}
+                        className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="border-2 border-dashed border-gray-350 dark:border-gray-700 hover:border-gold rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                      <Plus className="w-8 h-8 text-gray-400 mb-2" />
+                      <span className="text-sm font-semibold text-gray-500">{uploading ? 'Uploading...' : 'Upload Media File'}</span>
+                      <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
+                    </label>
+                  )}
                 </div>
-                <div className="flex items-center mt-8">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Button Text</label>
                     <input
-                      type="checkbox"
-                      checked={form.is_active}
-                      onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                      className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
+                      type="text"
+                      className="input"
+                      value={form.button_text}
+                      onChange={e => setForm(prev => ({ ...prev, button_text: e.target.value }))}
                     />
-                    <span>Active / Visible</span>
-                  </label>
+                  </div>
+                  <div>
+                    <label className="label">Button Redirect URL</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={form.button_url}
+                      onChange={e => setForm(prev => ({ ...prev, button_url: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Display Order</label>
+                    <input
+                      type="number"
+                      className="input"
+                      value={form.display_order}
+                      onChange={e => setForm(prev => ({ ...prev, display_order: Number(e.target.value) }))}
+                    />
+                  </div>
+                  <div className="flex items-center mt-8">
+                    <label className="flex items-center gap-2 cursor-pointer text-sm">
+                      <input
+                        type="checkbox"
+                        checked={form.is_active}
+                        onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                        className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
+                      />
+                      <span>Active / Visible</span>
+                    </label>
+                  </div>
                 </div>
               </div>
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-outline text-sm">Cancel</button>
-                <button type="submit" className="btn-gold text-sm flex items-center gap-1">
-                  <Save className="w-4 h-4" /> Save
+              <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 flex-shrink-0">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-outline text-sm font-semibold">Cancel</button>
+                <button type="submit" className="btn-gold text-sm flex items-center gap-1 font-semibold">
+                  <Save className="w-4 h-4" /> Save Slide
                 </button>
               </div>
             </form>

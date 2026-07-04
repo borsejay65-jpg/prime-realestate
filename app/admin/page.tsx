@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Building2, Star, Users, ShieldCheck, Key, Eye, Plus, ArrowRight, TrendingUp } from 'lucide-react'
 import { getProperties, getInquiries } from '@/lib/db'
+import { initializeStorageAction } from '@/lib/actions'
 import { formatDate, getInquiryStatusColor, getInquiryStatusLabel } from '@/lib/utils'
 import type { Property, Inquiry } from '@/types/database'
 
@@ -18,7 +19,8 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([getProperties(), getInquiries()]).then(([props, inqs]) => {
+    // Initialize storage buckets and load data
+    Promise.all([getProperties(), getInquiries(), initializeStorageAction()]).then(([props, inqs]) => {
       setProperties(props)
       setInquiries(inqs)
       setLoading(false)

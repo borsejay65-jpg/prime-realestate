@@ -155,93 +155,95 @@ export default function AdminTestimonialsPage() {
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-scale-in">
-            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-scale-in max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
               <h2 className="text-lg font-bold text-gray-800 dark:text-white">{editingItem ? 'Edit Testimonial' : 'Add Testimonial'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
-            <form onSubmit={handleSave} className="p-6 space-y-4">
-              <div>
-                <label className="label">Customer Name *</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={form.customer_name}
-                  onChange={e => setForm(prev => ({ ...prev, customer_name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="flex-1 flex flex-col min-h-0">
+              <div className="p-6 space-y-4 overflow-y-auto flex-1">
                 <div>
-                  <label className="label">Property Category Purchased</label>
+                  <label className="label">Customer Name *</label>
                   <input
                     type="text"
                     className="input"
-                    placeholder="e.g. 3 BHK Apartment"
-                    value={form.property_type}
-                    onChange={e => setForm(prev => ({ ...prev, property_type: e.target.value }))}
+                    value={form.customer_name}
+                    onChange={e => setForm(prev => ({ ...prev, customer_name: e.target.value }))}
+                    required
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Property Category Purchased</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="e.g. 3 BHK Apartment"
+                      value={form.property_type}
+                      onChange={e => setForm(prev => ({ ...prev, property_type: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Location</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="e.g. Baner, Jalgaon"
+                      value={form.location}
+                      onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Rating (1-5)</label>
+                    <select
+                      className="select"
+                      value={form.rating}
+                      onChange={e => setForm(prev => ({ ...prev, rating: Number(e.target.value) }))}
+                    >
+                      {[5, 4, 3, 2, 1].map(r => <option key={r} value={r}>{r} Stars</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label">Customer Avatar URL</label>
+                    <input
+                      type="text"
+                      className="input"
+                      placeholder="Image URL"
+                      value={form.customer_image}
+                      onChange={e => setForm(prev => ({ ...prev, customer_image: e.target.value }))}
+                    />
+                  </div>
                 </div>
                 <div>
-                  <label className="label">Location</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="e.g. Baner, Jalgaon"
-                    value={form.location}
-                    onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
+                  <label className="label">Review Message *</label>
+                  <textarea
+                    className="textarea"
+                    rows={4}
+                    value={form.review}
+                    onChange={e => setForm(prev => ({ ...prev, review: e.target.value }))}
+                    required
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Rating (1-5)</label>
-                  <select
-                    className="select"
-                    value={form.rating}
-                    onChange={e => setForm(prev => ({ ...prev, rating: Number(e.target.value) }))}
-                  >
-                    {[5, 4, 3, 2, 1].map(r => <option key={r} value={r}>{r} Stars</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Customer Avatar URL</label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="Image URL"
-                    value={form.customer_image}
-                    onChange={e => setForm(prev => ({ ...prev, customer_image: e.target.value }))}
-                  />
+                <div className="flex items-center mt-2">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.is_active}
+                      onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
+                      className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
+                    />
+                    <span>Display on homepage</span>
+                  </label>
                 </div>
               </div>
-              <div>
-                <label className="label">Review Message *</label>
-                <textarea
-                  className="textarea"
-                  rows={4}
-                  value={form.review}
-                  onChange={e => setForm(prev => ({ ...prev, review: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="flex items-center mt-2">
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.is_active}
-                    onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
-                    className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
-                  />
-                  <span>Display on homepage</span>
-                </label>
-              </div>
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-100 dark:border-gray-800">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-outline text-sm">Cancel</button>
-                <button type="submit" className="btn-gold text-sm flex items-center gap-1">
-                  <Save className="w-4 h-4" /> Save
+              <div className="flex gap-3 justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 flex-shrink-0">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="btn-outline text-sm font-semibold">Cancel</button>
+                <button type="submit" className="btn-gold text-sm flex items-center gap-1 font-semibold">
+                  <Save className="w-4 h-4" /> Save Testimonial
                 </button>
               </div>
             </form>

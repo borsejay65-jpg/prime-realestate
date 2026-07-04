@@ -76,26 +76,30 @@ export default function EditBlogPostPage() {
     setUploading(true)
     
     try {
-      const supabase = createClient()
       const ext = file.name.split('.').pop()
-      const path = `blogs/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`
+      const path = `${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`
       
-      const { error: uploadError } = await supabase.storage
-        .from('media')
-        .upload(path, file)
-        
-      if (uploadError) throw uploadError
-      
-      const { data: { publicUrl } } = supabase.storage
-        .from('media')
-        .getPublicUrl(path)
-        
-      setForm(prev => ({ ...prev, featured_image: publicUrl }))
-      toast.success('Image uploaded successfully!')
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = async () => {
+        try {
+          const base64 = (reader.result as string).split(',')[1] || ''
+          const { uploadMediaAction } = await import('@/lib/actions')
+          const res = await uploadMediaAction('blog-images', path, base64)
+          if (!res.success) throw new Error(res.error || 'Upload failed')
+          
+          setForm(prev => ({ ...prev, featured_image: res.url! }))
+          toast.success('Image uploaded successfully!')
+        } catch (err: any) {
+          console.error(err)
+          toast.error(err.message || 'Failed to upload image')
+        } finally {
+          setUploading(false)
+        }
+      }
     } catch (err: any) {
       console.error(err)
-      toast.error('Failed to upload image')
-    } finally {
+      toast.error('Failed to process image file')
       setUploading(false)
     }
   }

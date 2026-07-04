@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service'
 import { revalidatePath } from 'next/cache'
 
 // Helper to assert admin authentication
@@ -11,6 +12,60 @@ async function getAdminClient() {
     throw new Error('Unauthorized: Admin access required')
   }
   return supabase
+}
+
+export async function initializeStorageAction() {
+  try {
+    const supabase = createServiceRoleClient()
+    const requiredBuckets = [
+      'property-images',
+      'property-videos',
+      'brochures',
+      'carousel',
+      'blog-images',
+      'avatars',
+      'floor-plans',
+      'media'
+    ]
+
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets()
+    if (listError) throw listError
+
+    for (const bucketName of requiredBuckets) {
+      const exists = buckets?.some(b => b.name === bucketName)
+      if (!exists) {
+        const { error: createError } = await supabase.storage.createBucket(bucketName, {
+          public: true,
+          fileSizeLimit: 10485760, // 10MB
+        })
+        if (createError) console.error(`Failed to create bucket ${bucketName}:`, createError)
+      }
+    }
+    return { success: true }
+  } catch (err: any) {
+    console.error('Failed to initialize buckets:', err)
+    return { success: false, error: err.message }
+  }
+}
+
+export async function uploadMediaAction(bucket: string, path: string, base64Data: string, contentType?: string) {
+  try {
+    const supabase = createServiceRoleClient()
+    const buffer = Buffer.from(base64Data, 'base64')
+    
+    const { error } = await supabase.storage.from(bucket).upload(path, buffer, {
+      contentType: contentType || 'image/webp',
+      upsert: true
+    })
+    
+    if (error) throw error
+    
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path)
+    return { success: true, url: publicUrl }
+  } catch (err: any) {
+    console.error(`Upload error on bucket ${bucket}:`, err)
+    return { success: false, error: err.message || 'Upload failed' }
+  }
 }
 
 // ============================================================

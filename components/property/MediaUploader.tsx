@@ -77,16 +77,28 @@ export default function MediaUploader({
     })
   }
 
+  const fileToBase64 = (file: Blob | File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result.split(',')[1] || '')
+        } else {
+          reject(new Error('Failed to convert file to base64'))
+        }
+      }
+      reader.onerror = err => reject(err)
+      reader.readAsDataURL(file)
+    })
+  }
+
   // Upload file to Supabase Storage
   const uploadToStorage = async (bucket: string, path: string, blob: Blob | File) => {
-    const supabase = createClient()
-    const { data, error } = await supabase.storage.from(bucket).upload(path, blob, {
-      upsert: true
-    })
-    if (error) throw error
-    
-    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(path)
-    return publicUrl
+    const base64 = await fileToBase64(blob)
+    const { uploadMediaAction } = await import('@/lib/actions')
+    const res = await uploadMediaAction(bucket, path, base64)
+    if (!res.success) throw new Error(res.error || 'Upload failed')
+    return res.url!
   }
 
   // Handle gallery multiple images upload
