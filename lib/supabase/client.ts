@@ -1,5 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 export function createClient() {
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

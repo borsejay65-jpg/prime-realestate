@@ -5,6 +5,8 @@ import { Phone, MessageCircle, CalendarCheck, Download, Send } from 'lucide-reac
 import { getWhatsAppLink, getPropertyWhatsAppMessage, getCallLink } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
+import { createInquiryAction } from '@/lib/actions'
+
 interface Props { propertyTitle: string; propertySlug: string; brochureUrl?: string }
 
 export default function InquiryForm({ propertyTitle, propertySlug, brochureUrl }: Props) {
@@ -15,30 +17,30 @@ export default function InquiryForm({ propertyTitle, propertySlug, brochureUrl }
     e.preventDefault()
     if (!form.name || !form.phone) { toast.error('Please fill name and phone'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
     
     try {
-      const { getInquiries, saveInquiries } = require('@/lib/db')
-      const currentList = getInquiries()
       const newInquiry = {
-        id: Math.random().toString(36).substr(2, 9),
-        name: form.name,
-        phone: form.phone,
-        email: form.email || '',
+        customer_name: form.name,
+        customer_phone: form.phone,
+        customer_email: form.email || '',
         property_title: propertyTitle,
-        property_slug: propertySlug,
         message: form.message,
-        source: 'web_form',
-        status: 'new',
-        created_at: new Date().toISOString()
+        source: 'website_form',
+        status: 'new'
       }
-      saveInquiries([newInquiry, ...currentList])
-    } catch (err) {
+      
+      const res = await createInquiryAction(newInquiry)
+      if (res.success) {
+        toast.success('Thank you! Our team will contact you shortly.')
+        setForm(p => ({ ...p, name: '', phone: '', email: '' }))
+      } else {
+        toast.error(res.error || 'Failed to submit inquiry')
+      }
+    } catch (err: any) {
       console.error('Failed to save inquiry:', err)
+      toast.error('An error occurred. Please try again.')
     }
     
-    toast.success('Thank you! Our team will contact you shortly.')
-    setForm(p => ({ ...p, name: '', phone: '', email: '' }))
     setLoading(false)
   }
 

@@ -19,7 +19,16 @@ interface PropertyImage {
 export default function NewPropertyPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [propertyId] = useState(() => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9))
+  const [propertyId] = useState(() => {
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID()
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0
+      const v = c === 'x' ? r : (r & 0x3 | 0x8)
+      return v.toString(16)
+    })
+  })
   
   const [highlights, setHighlights] = useState<string[]>([''])
   const [images, setImages] = useState<PropertyImage[]>([])
