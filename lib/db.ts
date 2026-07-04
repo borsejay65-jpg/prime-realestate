@@ -1,103 +1,146 @@
-import { demoProperties, demoInquiries, demoBlogs, demoTestimonials, demoFAQs } from './demo-data'
-import type { Property, Inquiry, Blog, Testimonial, FAQ } from '@/types/database'
+import { createClient as createBrowserClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Property, Inquiry, Blog, Testimonial, FAQ, CarouselSlide } from '@/types/database'
 
-const KEY_PROPERTIES = 'primeaxis_properties'
-const KEY_INQUIRIES = 'primeaxis_inquiries'
-const KEY_BLOGS = 'primeaxis_blogs'
-const KEY_TESTIMONIALS = 'primeaxis_testimonials'
-const KEY_FAQS = 'primeaxis_faqs'
-
-export function getProperties(): Property[] {
-  if (typeof window === 'undefined') return demoProperties
-  const data = localStorage.getItem(KEY_PROPERTIES)
-  if (!data) {
-    localStorage.setItem(KEY_PROPERTIES, JSON.stringify(demoProperties))
-    return demoProperties
-  }
-  try {
-    return JSON.parse(data)
-  } catch {
-    return demoProperties
-  }
+function getClient(client?: SupabaseClient) {
+  if (client) return client
+  return createBrowserClient()
 }
 
-export function saveProperties(list: Property[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_PROPERTIES, JSON.stringify(list))
+// 1. Properties
+export async function getProperties(client?: SupabaseClient): Promise<Property[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*, images:property_images(*), videos:property_videos(*)')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Failed to get properties:', error)
+    return []
+  }
+  return data || []
 }
 
-export function getInquiries(): Inquiry[] {
-  if (typeof window === 'undefined') return demoInquiries as any
-  const data = localStorage.getItem(KEY_INQUIRIES)
-  if (!data) {
-    localStorage.setItem(KEY_INQUIRIES, JSON.stringify(demoInquiries))
-    return demoInquiries as any
+export async function getPropertyBySlug(slug: string, client?: SupabaseClient): Promise<Property | null> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('properties')
+    .select('*, images:property_images(*), videos:property_videos(*)')
+    .eq('slug', slug)
+    .single()
+  
+  if (error) {
+    console.error(`Failed to get property by slug ${slug}:`, error)
+    return null
   }
-  try {
-    return JSON.parse(data)
-  } catch {
-    return demoInquiries as any
-  }
+  return data
 }
 
-export function saveInquiries(list: any[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_INQUIRIES, JSON.stringify(list))
+// 2. Inquiries
+export async function getInquiries(client?: SupabaseClient): Promise<Inquiry[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('inquiries')
+    .select('*, property:properties(*)')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Failed to get inquiries:', error)
+    return []
+  }
+  return data || []
 }
 
-export function getBlogs(): Blog[] {
-  if (typeof window === 'undefined') return demoBlogs
-  const data = localStorage.getItem(KEY_BLOGS)
-  if (!data) {
-    localStorage.setItem(KEY_BLOGS, JSON.stringify(demoBlogs))
-    return demoBlogs
+// 3. Blogs
+export async function getBlogs(client?: SupabaseClient): Promise<Blog[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('blogs')
+    .select('*')
+    .order('created_at', { ascending: false })
+  
+  if (error) {
+    console.error('Failed to get blogs:', error)
+    return []
   }
-  try {
-    return JSON.parse(data)
-  } catch {
-    return demoBlogs
-  }
+  return data || []
 }
 
-export function saveBlogs(list: Blog[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_BLOGS, JSON.stringify(list))
+export async function getBlogBySlug(slug: string, client?: SupabaseClient): Promise<Blog | null> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('blogs')
+    .select('*')
+    .eq('slug', slug)
+    .single()
+  
+  if (error) {
+    console.error(`Failed to get blog by slug ${slug}:`, error)
+    return null
+  }
+  return data
 }
 
-export function getTestimonials(): Testimonial[] {
-  if (typeof window === 'undefined') return demoTestimonials
-  const data = localStorage.getItem(KEY_TESTIMONIALS)
-  if (!data) {
-    localStorage.setItem(KEY_TESTIMONIALS, JSON.stringify(demoTestimonials))
-    return demoTestimonials
+// 4. Testimonials
+export async function getTestimonials(client?: SupabaseClient): Promise<Testimonial[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('*')
+    .order('display_order', { ascending: true })
+  
+  if (error) {
+    console.error('Failed to get testimonials:', error)
+    return []
   }
-  try {
-    return JSON.parse(data)
-  } catch {
-    return demoTestimonials
-  }
+  return data || []
 }
 
-export function saveTestimonials(list: Testimonial[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_TESTIMONIALS, JSON.stringify(list))
+// 5. FAQs
+export async function getFAQs(client?: SupabaseClient): Promise<FAQ[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('faqs')
+    .select('*')
+    .order('display_order', { ascending: true })
+  
+  if (error) {
+    console.error('Failed to get FAQs:', error)
+    return []
+  }
+  return data || []
 }
 
-export function getFAQs(): FAQ[] {
-  if (typeof window === 'undefined') return demoFAQs
-  const data = localStorage.getItem(KEY_FAQS)
-  if (!data) {
-    localStorage.setItem(KEY_FAQS, JSON.stringify(demoFAQs))
-    return demoFAQs
+// 6. Carousel Slides
+export async function getCarouselSlides(client?: SupabaseClient): Promise<CarouselSlide[]> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('carousel_slides')
+    .select('*')
+    .order('display_order', { ascending: true })
+  
+  if (error) {
+    console.error('Failed to get carousel slides:', error)
+    return []
   }
-  try {
-    return JSON.parse(data)
-  } catch {
-    return demoFAQs
-  }
+  return data || []
 }
 
-export function saveFAQs(list: FAQ[]) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_FAQS, JSON.stringify(list))
+// 7. Settings Key-Value Map
+export async function getSettings(client?: SupabaseClient): Promise<Record<string, string>> {
+  const supabase = getClient(client)
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('key, value')
+  
+  if (error) {
+    console.error('Failed to get settings:', error)
+    return {}
+  }
+  
+  return (data || []).reduce((acc, row) => {
+    acc[row.key] = row.value || ''
+    return acc
+  }, {} as Record<string, string>)
 }

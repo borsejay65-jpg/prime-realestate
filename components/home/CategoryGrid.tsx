@@ -1,10 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { useInView } from 'react-intersection-observer'
 import { Home, Building2, Map as MapIcon, TreePine, Key, Crown, Building, Briefcase, Package } from 'lucide-react'
-import { demoCategories } from '@/lib/demo-data'
+import { getProperties } from '@/lib/db'
 import type { LucideIcon } from 'lucide-react'
 
 const iconMap: Record<string, LucideIcon> = {
@@ -15,6 +16,27 @@ const iconMap: Record<string, LucideIcon> = {
 
 export default function CategoryGrid() {
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
+  const [categories, setCategories] = useState<any[]>([])
+
+  useEffect(() => {
+    getProperties().then(list => {
+      const activeProps = list.filter(p => p.is_active && !p.is_draft)
+      const counts = activeProps.reduce((acc: any, p) => {
+        const type = p.property_type
+        acc[type] = (acc[type] || 0) + 1
+        return acc
+      }, {})
+
+      const cats = [
+        { id: '1', name: 'Apartments', slug: 'apartment', icon: 'home', property_count: counts['apartment'] || 0 },
+        { id: '2', name: 'Luxury Villas', slug: 'luxury_villa', icon: 'crown', property_count: counts['luxury_villa'] || 0 },
+        { id: '3', name: 'Plots / Land', slug: 'plot', icon: 'map', property_count: counts['plot'] || 0 },
+        { id: '4', name: 'Commercial', slug: 'commercial', icon: 'building-2', property_count: counts['commercial'] || 0 },
+        { id: '5', name: 'Farm House', slug: 'farmhouse', icon: 'tree-pine', property_count: counts['farmhouse'] || 0 },
+      ]
+      setCategories(cats)
+    })
+  }, [])
 
   return (
     <section className="section bg-gray-50 dark:bg-gray-900/50" ref={ref}>
@@ -27,7 +49,7 @@ export default function CategoryGrid() {
         </motion.div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {demoCategories.map((cat, i) => {
+          {categories.map((cat, i) => {
             const Icon = iconMap[cat.icon || 'home'] || Home
             return (
               <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }}

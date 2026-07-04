@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit2, Save, X, Star } from 'lucide-react'
-import { demoTestimonials } from '@/lib/demo-data'
+import { getTestimonials } from '@/lib/db'
+import { createTestimonialAction, updateTestimonialAction, deleteTestimonialAction } from '@/lib/actions'
 import toast from 'react-hot-toast'
 
 interface Testimonial {
@@ -10,9 +11,7 @@ interface Testimonial {
 }
 
 export default function AdminTestimonialsPage() {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(
-    demoTestimonials.map(t => ({ ...t, is_active: true }))
-  )
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<Testimonial | null>(null)
 
@@ -25,6 +24,14 @@ export default function AdminTestimonialsPage() {
     location: '',
     is_active: true
   })
+
+  const fetchTestimonials = () => {
+    getTestimonials().then(setTestimonials)
+  }
+
+  useEffect(() => {
+    fetchTestimonials()
+  }, [])
 
   const openAddModal = () => {
     setEditingItem(null)
@@ -54,31 +61,47 @@ export default function AdminTestimonialsPage() {
     setIsModalOpen(true)
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.customer_name || !form.review) {
       toast.error('Name and Review are required')
       return
     }
 
-    if (editingItem) {
-      setTestimonials(prev => prev.map(t => t.id === editingItem.id ? { ...t, ...form } : t))
-      toast.success('Testimonial updated successfully!')
-    } else {
-      const newItem: Testimonial = {
-        ...form,
-        id: Math.random().toString(36).substring(2)
+    try {
+      if (editingItem) {
+        const res = await updateTestimonialAction(editingItem.id, form)
+        if (res.success) {
+          toast.success('Testimonial updated successfully!')
+          fetchTestimonials()
+        } else {
+          toast.error(res.error || 'Failed to update testimonial')
+        }
+      } else {
+        const res = await createTestimonialAction(form)
+        if (res.success) {
+          toast.success('Testimonial added successfully!')
+          fetchTestimonials()
+        } else {
+          toast.error(res.error || 'Failed to create testimonial')
+        }
       }
-      setTestimonials(prev => [newItem, ...prev])
-      toast.success('Testimonial added successfully!')
+      setIsModalOpen(false)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'An error occurred')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this testimonial?')) {
-      setTestimonials(prev => prev.filter(t => t.id !== id))
-      toast.success('Testimonial deleted successfully!')
+      const res = await deleteTestimonialAction(id)
+      if (res.success) {
+        toast.success('Testimonial deleted successfully!')
+        fetchTestimonials()
+      } else {
+        toast.error(res.error || 'Failed to delete testimonial')
+      }
     }
   }
 

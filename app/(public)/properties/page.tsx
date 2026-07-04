@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
 import PropertyFilters from '@/components/property/PropertyFilters'
@@ -9,10 +9,15 @@ import { getProperties } from '@/lib/db'
 import type { Property } from '@/types/database'
 
 export default function PropertiesPage() {
+  const [properties, setProperties] = useState<Property[]>([])
   const [filters, setFilters] = useState({ search: '', type: '', status: '', minPrice: '', maxPrice: '', bedrooms: '', sort: 'newest' })
 
+  useEffect(() => {
+    getProperties().then(list => setProperties(list.filter(p => p.is_active && !p.is_draft)))
+  }, [])
+
   const filtered = useMemo(() => {
-    let result = [...getProperties()]
+    let result = [...properties]
     if (filters.search) result = result.filter(p => p.title.toLowerCase().includes(filters.search.toLowerCase()) || p.location.toLowerCase().includes(filters.search.toLowerCase()))
     if (filters.type) result = result.filter(p => p.property_type === filters.type)
     if (filters.status) result = result.filter(p => p.status === filters.status)
@@ -26,7 +31,7 @@ export default function PropertiesPage() {
       default: result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
     return result
-  }, [filters])
+  }, [properties, filters])
 
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark pt-24 pb-16">

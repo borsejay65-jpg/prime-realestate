@@ -1,9 +1,25 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Compass, Eye, Award, Check, Phone, MessageCircle } from 'lucide-react'
+import { getSettings } from '@/lib/db'
 
 export default function AboutPage() {
+  const [contact, setContact] = useState({
+    phone: '+919511802062',
+    whatsapp: '919511802062'
+  })
+
+  useEffect(() => {
+    getSettings().then(dict => {
+      setContact({
+        phone: (dict.phone_primary || '+919511802062').replace(/\s+/g, ''),
+        whatsapp: (dict.whatsapp_number || '919511802062').replace(/\D/g, '')
+      })
+    })
+  }, [])
+
   const whyChooseUs = [
     'Transparent & Ethical Business Practices',
     'Personalized Property Consultation',
@@ -186,8 +202,8 @@ export default function AboutPage() {
           <h2 className="font-display text-3xl font-bold text-gray-800 dark:text-white mb-4">Ready to start your property journey?</h2>
           <p className="text-gray-500 mb-8 max-w-xl mx-auto">Get in touch with Jay Rajput and the team at Prime Real Estate today.</p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <a href="https://wa.me/919511802062" target="_blank" rel="noopener noreferrer" className="btn-whatsapp"><MessageCircle className="w-5 h-5" /> WhatsApp Us</a>
-            <a href="tel:+919511802062" className="btn-primary"><Phone className="w-5 h-5" /> Call Now</a>
+            <a href={`https://wa.me/${contact.whatsapp}`} target="_blank" rel="noopener noreferrer" className="btn-whatsapp"><MessageCircle className="w-5 h-5" /> WhatsApp Us</a>
+            <a href={`tel:${contact.phone}`} className="btn-primary flex items-center gap-1"><Phone className="w-5 h-5" /> Call Now</a>
           </div>
         </div>
       </section>

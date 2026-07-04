@@ -1,10 +1,18 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import PropertyCard from './PropertyCard'
-import { demoProperties } from '@/lib/demo-data'
+import { getProperties } from '@/lib/db'
 
 export default function RelatedProperties({ currentId, propertyType, city }: { currentId: string; propertyType: string; city?: string }) {
-  const related = demoProperties.filter(p => p.id !== currentId && (p.property_type === propertyType || p.city === city)).slice(0, 4)
+  const [related, setRelated] = useState<any[]>([])
+
+  useEffect(() => {
+    getProperties().then(list => {
+      const filtered = list.filter(p => p.id !== currentId && p.is_active && !p.is_draft && (p.property_type === propertyType || p.city === city)).slice(0, 4)
+      setRelated(filtered)
+    })
+  }, [currentId, propertyType, city])
 
   if (!related.length) return null
 

@@ -1,57 +1,56 @@
 'use client'
 
-import { useState } from 'react'
-import { Plus, Trash2, Edit2, Save, X, Eye } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Plus, Trash2, Edit2, Save, X, Upload } from 'lucide-react'
+import { getCarouselSlides } from '@/lib/db'
+import { saveCarouselSlideAction, deleteCarouselSlideAction } from '@/lib/actions'
+import { createClient } from '@/lib/supabase/client'
 import toast from 'react-hot-toast'
 
 interface Slide {
-  id: string; title: string; subtitle: string; image_url: string; button_text: string; button_url: string; display_order: number; is_active: boolean
+  id: string
+  title: string
+  subtitle: string
+  media_url: string
+  slide_type: 'image' | 'video'
+  button_text: string
+  button_url: string
+  display_order: number
+  is_active: boolean
 }
 
-const initialSlides: Slide[] = [
-  {
-    id: '1',
-    title: 'Find Your Dream Property Today',
-    subtitle: 'Premium properties in Jalgaon starting from 80 Lakhs',
-    image_url: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1920&h=1080&fit=crop',
-    button_text: 'View Properties',
-    button_url: '/properties',
-    display_order: 1,
-    is_active: true
-  },
-  {
-    id: '2',
-    title: 'Modern Luxury Villas',
-    subtitle: 'Exclusive villa communities with private pools and landscaped gardens',
-    image_url: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=1920&h=1080&fit=crop',
-    button_text: 'Explore Villas',
-    button_url: '/properties?type=villa',
-    display_order: 2,
-    is_active: true
-  }
-]
-
 export default function CarouselManagementPage() {
-  const [slides, setSlides] = useState<Slide[]>(initialSlides)
+  const [slides, setSlides] = useState<Slide[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingSlide, setEditingSlide] = useState<Slide | null>(null)
+  const [uploading, setUploading] = useState(false)
 
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
-    image_url: '',
+    media_url: '',
+    slide_type: 'image' as 'image' | 'video',
     button_text: 'View Details',
     button_url: '/properties',
     display_order: 1,
     is_active: true
   })
 
+  const fetchSlides = () => {
+    getCarouselSlides().then(list => setSlides(list as any[]))
+  }
+
+  useEffect(() => {
+    fetchSlides()
+  }, [])
+
   const openAddModal = () => {
     setEditingSlide(null)
     setForm({
       title: '',
       subtitle: '',
-      image_url: '',
+      media_url: '',
+      slide_type: 'image',
       button_text: 'View Details',
       button_url: '/properties',
       display_order: slides.length + 1,
@@ -63,54 +62,95 @@ export default function CarouselManagementPage() {
   const openEditModal = (slide: Slide) => {
     setEditingSlide(slide)
     setForm({
-      title: slide.title,
-      subtitle: slide.subtitle,
-      image_url: slide.image_url,
-      button_text: slide.button_text,
-      button_url: slide.button_url,
-      display_order: slide.display_order,
-      is_active: slide.is_active
+      title: slide.title || '',
+      subtitle: slide.subtitle || '',
+      media_url: slide.media_url || '',
+      slide_type: slide.slide_type || 'image',
+      button_text: slide.button_text || '',
+      button_url: slide.button_url || '',
+      display_order: slide.display_order || 1,
+      is_active: slide.is_active !== false
     })
     setIsModalOpen(true)
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    
+    try {
+      const supabase = createClient()
+      const ext = file.name.split('.').pop()
+      const path = `carousel/${Date.now()}-${Math.random().toString(36).substr(2, 5)}.${ext}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(path, file)
+        
+      if (uploadError) throw uploadError
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(path)
+        
+      setForm(prev => ({ ...prev, media_url: publicUrl }))
+      toast.success('Media uploaded successfully!')
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Failed to upload media file')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!form.title || !form.image_url) {
-      toast.error('Title and Image URL are required')
+    if (!form.title || !form.media_url) {
+      toast.error('Title and Media URL are required')
       return
     }
 
-    if (editingSlide) {
-      setSlides(prev => prev.map(s => s.id === editingSlide.id ? { ...s, ...form } : s))
-      toast.success('Slide updated successfully!')
-    } else {
-      const newSlide: Slide = {
+    try {
+      const payload = {
         ...form,
-        id: Math.random().toString(36).substring(2)
+        id: editingSlide ? editingSlide.id : undefined
       }
-      setSlides(prev => [...prev, newSlide])
-      toast.success('Slide added successfully!')
+
+      const res = await saveCarouselSlideAction(payload)
+      if (res.success) {
+        toast.success(editingSlide ? 'Slide updated successfully!' : 'Slide added successfully!')
+        fetchSlides()
+        setIsModalOpen(false)
+      } else {
+        toast.error(res.error || 'Failed to save slide')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'An error occurred')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this slide?')) {
-      setSlides(prev => prev.filter(s => s.id !== id))
-      toast.success('Slide deleted successfully!')
+      try {
+        const res = await deleteCarouselSlideAction(id)
+        if (res.success) {
+          toast.success('Slide deleted successfully!')
+          fetchSlides()
+        } else {
+          toast.error(res.error || 'Failed to delete slide')
+        }
+      } catch (err: any) {
+        toast.error(err.message || 'An error occurred')
+      }
     }
-  }
-
-  const handleToggleActive = (id: string) => {
-    setSlides(prev => prev.map(s => s.id === id ? { ...s, is_active: !s.is_active } : s))
-    toast.success('Status updated!')
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Manage Homepage Carousel</h1>
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Manage Carousel Slides</h1>
         <button onClick={openAddModal} className="btn-gold text-sm flex items-center gap-1">
           <Plus className="w-4 h-4" /> Add Slide
         </button>
@@ -118,87 +158,97 @@ export default function CarouselManagementPage() {
 
       <div className="grid md:grid-cols-2 gap-6">
         {slides.map(slide => (
-          <div key={slide.id} className="card overflow-hidden flex flex-col">
-            <div className="relative aspect-[16/9] bg-gray-100 dark:bg-gray-800">
-              <img src={slide.image_url} alt="" className="w-full h-full object-cover" />
+          <div key={slide.id} className="card overflow-hidden group flex flex-col justify-between">
+            <div className="aspect-[21/9] w-full bg-gray-100 relative overflow-hidden">
+              <img src={slide.media_url || '/placeholder.png'} alt={slide.title} className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 p-4 flex flex-col justify-end text-white">
-                <span className="text-xs text-gold uppercase tracking-wider font-semibold">Order: {slide.display_order}</span>
-                <h3 className="font-display font-bold text-lg leading-tight mt-1">{slide.title}</h3>
-                <p className="text-xs text-white/80 line-clamp-1 mt-0.5">{slide.subtitle}</p>
+                <span className="text-[10px] uppercase font-bold bg-gold text-primary-950 px-2 py-0.5 rounded self-start mb-2">
+                  Order: {slide.display_order}
+                </span>
+                <h3 className="font-semibold text-lg line-clamp-1">{slide.title}</h3>
+                <p className="text-xs text-white/70 line-clamp-1">{slide.subtitle}</p>
               </div>
             </div>
-            <div className="p-4 flex items-center justify-between border-t border-gray-100 dark:border-gray-800 mt-auto">
-              <label className="flex items-center gap-2 cursor-pointer text-sm">
-                <input
-                  type="checkbox"
-                  checked={slide.is_active}
-                  onChange={() => handleToggleActive(slide.id)}
-                  className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
-                />
-                <span>Active</span>
-              </label>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openEditModal(slide)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-primary dark:text-gold transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4.5 h-4.5" />
+            <div className="p-4 flex justify-between items-center bg-white dark:bg-surface-dark border-t border-gray-100 dark:border-gray-800">
+              <span className={`text-xs font-semibold ${slide.is_active ? 'text-green-600' : 'text-gray-400'}`}>
+                {slide.is_active ? 'Active' : 'Inactive'}
+              </span>
+              <div className="flex gap-1">
+                <button onClick={() => openEditModal(slide)} className="p-2 text-primary dark:text-gold hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <Edit2 className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => handleDelete(slide.id)}
-                  className="p-2 hover:bg-red-500/10 rounded-lg text-red-500 transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4.5 h-4.5" />
+                <button onClick={() => handleDelete(slide.id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors">
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
         ))}
+        {slides.length === 0 && (
+          <div className="card p-8 text-center text-gray-500 col-span-2">
+            No slides configured. Add a slide to show on homepage.
+          </div>
+        )}
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-surface-dark w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-scale-in">
             <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-white">{editingSlide ? 'Edit Slide' : 'Add New Slide'}</h2>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">{editingSlide ? 'Edit Slide' : 'Add Slide'}</h2>
               <button onClick={() => setIsModalOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSave} className="p-6 space-y-4">
               <div>
-                <label className="label">Title *</label>
+                <label className="label">Slide Type</label>
+                <select className="select" value={form.slide_type} onChange={e => setForm(prev => ({ ...prev, slide_type: e.target.value as any }))}>
+                  <option value="image">Image</option>
+                  <option value="video">Video</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Headline Title *</label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Slide Headline"
+                  placeholder="e.g. Find Your Dream Property Today"
                   value={form.title}
                   onChange={e => setForm(prev => ({ ...prev, title: e.target.value }))}
                   required
                 />
               </div>
               <div>
-                <label className="label">Subtitle</label>
+                <label className="label">Subtitle / Description</label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Secondary supporting text"
+                  placeholder="e.g. Premium properties starting from 80 Lakhs"
                   value={form.subtitle}
                   onChange={e => setForm(prev => ({ ...prev, subtitle: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="label">Image URL *</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Image URL"
-                  value={form.image_url}
-                  onChange={e => setForm(prev => ({ ...prev, image_url: e.target.value }))}
-                  required
-                />
+                <label className="label">Slide Media Image/Video File</label>
+                {form.media_url ? (
+                  <div className="relative aspect-[21/9] w-full rounded-xl overflow-hidden group border border-gray-200">
+                    <img src={form.media_url} alt="" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setForm(prev => ({ ...prev, media_url: '' }))}
+                      className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-white rounded-full transition-colors opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="border-2 border-dashed border-gray-350 dark:border-gray-700 hover:border-gold rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                    <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm font-semibold text-gray-500">{uploading ? 'Uploading...' : 'Upload Media File'}</span>
+                    <input type="file" accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
+                  </label>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -211,7 +261,7 @@ export default function CarouselManagementPage() {
                   />
                 </div>
                 <div>
-                  <label className="label">Button URL</label>
+                  <label className="label">Button Redirect URL</label>
                   <input
                     type="text"
                     className="input"
@@ -238,7 +288,7 @@ export default function CarouselManagementPage() {
                       onChange={e => setForm(prev => ({ ...prev, is_active: e.target.checked }))}
                       className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
                     />
-                    <span>Active</span>
+                    <span>Active / Visible</span>
                   </label>
                 </div>
               </div>

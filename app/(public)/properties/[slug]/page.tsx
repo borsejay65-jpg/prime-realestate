@@ -1,10 +1,9 @@
-'use client'
-
-import { useParams } from 'next/navigation'
 import Link from 'next/link'
-import { Home, ChevronRight, MapPin, Check, Share2, MessageCircle } from 'lucide-react'
-import { getProperties } from '@/lib/db'
-import { formatPrice, getStatusBadgeClass, getStatusLabel, getWhatsAppLink, getPropertyWhatsAppMessage } from '@/lib/utils'
+import { notFound } from 'next/navigation'
+import { Home, ChevronRight, MapPin, Check } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import { getPropertyBySlug } from '@/lib/db'
+import { formatPrice, getStatusBadgeClass, getStatusLabel } from '@/lib/utils'
 import ImageGallery from '@/components/property/ImageGallery'
 import PropertySpecs from '@/components/property/PropertySpecs'
 import AmenitiesGrid from '@/components/property/AmenitiesGrid'
@@ -12,27 +11,44 @@ import InquiryForm from '@/components/property/InquiryForm'
 import StickyCTA from '@/components/property/StickyCTA'
 import MortgageCalculator from '@/components/property/MortgageCalculator'
 import RelatedProperties from '@/components/property/RelatedProperties'
-import toast from 'react-hot-toast'
+import ShareButtons from '@/components/property/ShareButtons'
+import type { Metadata } from 'next'
 
-export default function PropertyDetailPage() {
-  const params = useParams()
-  const slug = params.slug as string
-  const property = getProperties().find(p => p.slug === slug)
+export const dynamic = 'force-dynamic'
 
-  if (!property) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background dark:bg-background-dark pt-24">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">Property Not Found</h1>
-          <p className="text-gray-500 mb-6">This property may have been sold or removed.</p>
-          <Link href="/properties" className="btn-primary">Browse Properties</Link>
-        </div>
-      </div>
-    )
+interface Props {
+  params: { slug: string }
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supabase = await createClient()
+  const property = await getPropertyBySlug(params.slug, supabase)
+  if (!property) return { title: 'Property Not Found' }
+
+  return {
+    title: property.seo_title || `${property.title} | PrimeAxis`,
+    description: property.seo_description || property.description,
+    alternates: {
+      canonical: `/properties/${property.slug}`
+    },
+    openGraph: {
+      title: property.seo_title || property.title,
+      description: property.seo_description || property.description,
+      images: property.thumbnail_url ? [{ url: property.thumbnail_url }] : []
+    }
+  }
+}
+
+export default async function PropertyDetailPage({ params }: Props) {
+  const supabase = await createClient()
+  const property = await getPropertyBySlug(params.slug, supabase)
+
+  if (!property || !property.is_active || property.is_draft) {
+    notFound()
   }
 
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : ''
-  const handleShare = () => { navigator.clipboard.writeText(shareUrl); toast.success('Link copied!') }
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://primeaxis.in'
+  const shareUrl = `${baseUrl}/properties/${property.slug}`
 
   const schema = {
     '@context': 'https://schema.org',
@@ -41,8 +57,18 @@ export default function PropertyDetailPage() {
     description: property.description,
     url: shareUrl,
     image: property.thumbnail_url,
-    offers: { '@type': 'Offer', price: property.price, priceCurrency: 'INR', availability: 'https://schema.org/InStock' },
-    address: { '@type': 'PostalAddress', addressLocality: property.city, addressRegion: property.state, addressCountry: 'IN' },
+    offers: {
+      '@type': 'Offer',
+      price: property.price,
+      priceCurrency: 'INR',
+      availability: 'https://schema.org/InStock'
+    },
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: property.city,
+      addressRegion: property.state,
+      addressCountry: 'IN'
+    }
   }
 
   return (
@@ -71,15 +97,7 @@ export default function PropertyDetailPage() {
                   <h1 className="font-display text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">{property.title}</h1>
                   <p className="flex items-center gap-1 text-gray-500 mt-2"><MapPin className="w-5 h-5" /> {property.location}</p>
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={handleShare} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 transition-colors">
-                    <Share2 className="w-5 h-5" />
-                  </button>
-                  <a href={getWhatsAppLink(`Check out this property: ${property.title} - ${shareUrl}`)} target="_blank" rel="noopener"
-                    className="p-3 bg-[#25d366] text-white rounded-xl hover:bg-[#20bd5a] transition-colors">
-                    <MessageCircle className="w-5 h-5" />
-                  </a>
-                </div>
+                <ShareButtons title={property.title} url={shareUrl} />
               </div>
               <div className="flex items-center gap-3 mt-4">
                 <p className="font-display text-4xl font-bold text-primary dark:text-gold">
@@ -92,7 +110,10 @@ export default function PropertyDetailPage() {
             {property.description && (
               <div>
                 <h2 className="font-display text-2xl font-bold text-gray-800 dark:text-white mb-4">Description</h2>
-                <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line">{property.description}</p>
+                <div
+                  className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: property.description }}
+                />
               </div>
             )}
 

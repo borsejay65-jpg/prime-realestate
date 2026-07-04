@@ -1,3 +1,6 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   Facebook,
@@ -41,6 +44,39 @@ const socialLinks = [
 ]
 
 export default function Footer() {
+  const [contact, setContact] = useState({
+    phone: '+91 9511802062',
+    whatsapp: '+91 9511802062',
+    email: 'info@primeaxis.in',
+    address: 'Office 101, Central Plaza, Court Road, Jalgaon, Maharashtra 425001',
+    hours: 'Mon – Sat: 9:30 AM – 7:00 PM'
+  })
+  const [company, setCompany] = useState({
+    name: 'PrimeAxis Realty',
+    rera_number: 'RERA: P52100023456'
+  })
+
+  useEffect(() => {
+    const { createClient } = require('@/lib/supabase/client')
+    const supabase = createClient()
+    supabase.from('site_settings').select('key, value').then(({ data }) => {
+      if (data) {
+        const dict = data.reduce((acc: any, r: any) => ({ ...acc, [r.key]: r.value }), {} as any)
+        setContact({
+          phone: dict.phone_primary || '+91 9511802062',
+          whatsapp: dict.whatsapp_number || '+91 9511802062',
+          email: dict.email_primary || 'info@primeaxis.in',
+          address: dict.address || 'Office 101, Central Plaza, Court Road, Jalgaon, Maharashtra 425001',
+          hours: dict.business_hours || 'Mon – Sat: 9:30 AM – 7:00 PM'
+        })
+        setCompany({
+          name: dict.company_name || 'PrimeAxis Realty',
+          rera_number: dict.rera_number ? `RERA: ${dict.rera_number}` : 'RERA: P52100023456'
+        })
+      }
+    })
+  }, [])
+
   return (
     <footer className="bg-[#07111f] text-white">
       {/* Gold line at top */}
@@ -133,32 +169,31 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="h-5 w-5 text-gold flex-shrink-0 mt-0.5" />
                 <span className="text-gray-400 text-sm leading-relaxed">
-                  Office 101, Central Plaza,
-                  Court Road, Jalgaon, Maharashtra 425001
+                  {contact.address}
                 </span>
               </li>
               <li>
                 <a
-                  href="tel:+919511802062"
+                  href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}
                   className="flex items-center gap-3 text-gray-400 text-sm transition-colors duration-300 hover:text-gold"
                 >
                   <Phone className="h-5 w-5 text-gold flex-shrink-0" />
-                  +91 95118 02062
+                  {contact.phone}
                 </a>
               </li>
               <li>
                 <a
-                  href="mailto:hello@primeaxis.in"
+                  href={`mailto:${contact.email}`}
                   className="flex items-center gap-3 text-gray-400 text-sm transition-colors duration-300 hover:text-gold"
                 >
                   <Mail className="h-5 w-5 text-gold flex-shrink-0" />
-                  hello@primeaxis.in
+                  {contact.email}
                 </a>
               </li>
               <li className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-gold flex-shrink-0" />
                 <span className="text-gray-400 text-sm">
-                  Mon – Sat: 9:30 AM – 7:00 PM
+                  {contact.hours}
                 </span>
               </li>
             </ul>
@@ -169,10 +204,10 @@ export default function Footer() {
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-sm">
-              © 2024 PrimeAxis Realty. All rights reserved.
+              © 2024 {company.name}. All rights reserved.
             </p>
             <p className="text-gray-500 text-sm">
-              RERA: P52100023456
+              {company.rera_number.startsWith('RERA:') ? company.rera_number : `RERA: ${company.rera_number}`}
             </p>
           </div>
         </div>

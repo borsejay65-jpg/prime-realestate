@@ -1,57 +1,81 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Edit2, Trash2, Star, Eye, Copy } from 'lucide-react'
-import { getProperties, saveProperties } from '@/lib/db'
+import { getProperties } from '@/lib/db'
+import { togglePropertyFeatureAction, deletePropertyAction, createPropertyAction } from '@/lib/actions'
 import { formatPrice, getStatusBadgeClass, getStatusLabel, getPropertyTypeLabel } from '@/lib/utils'
 import type { Property } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function AdminPropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>(() => getProperties())
+  const [properties, setProperties] = useState<Property[]>([])
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
 
+  const fetchProperties = () => {
+    getProperties().then(setProperties)
+  }
+
+  useEffect(() => {
+    fetchProperties()
+  }, [])
+
   const filteredProperties = useMemo(() => {
     return properties.filter(p => {
-      const matchesSearch = p.title.toLowerCase().includes(search.toLowerCase()) || p.location.toLowerCase().includes(search.toLowerCase())
+      const title = p.title || ''
+      const location = p.location || ''
+      const matchesSearch = title.toLowerCase().includes(search.toLowerCase()) || location.toLowerCase().includes(search.toLowerCase())
       const matchesType = typeFilter ? p.property_type === typeFilter : true
       const matchesStatus = statusFilter ? p.status === statusFilter : true
       return matchesSearch && matchesType && matchesStatus
     })
   }, [properties, search, typeFilter, statusFilter])
 
-  const handleToggleFeatured = (id: string) => {
-    const updated = properties.map(p => p.id === id ? { ...p, is_featured: !p.is_featured } : p)
-    setProperties(updated)
-    saveProperties(updated)
-    toast.success('Property featured status updated!')
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this property?')) {
-      const updated = properties.filter(p => p.id !== id)
-      setProperties(updated)
-      saveProperties(updated)
-      toast.success('Property deleted successfully!')
+  const handleToggleFeatured = async (id: string) => {
+    const prop = properties.find(p => p.id === id)
+    if (!prop) return
+    const res = await togglePropertyFeatureAction(id, !prop.is_featured)
+    if (res.success) {
+      toast.success('Property featured status updated!')
+      fetchProperties()
+    } else {
+      toast.error(res.error || 'Failed to update featured status')
     }
   }
 
-  const handleDuplicate = (property: Property) => {
-    const duplicated: Property = {
-      ...property,
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+  const handleDelete = async (id: string) => {
+    if (confirm('Are you sure you want to delete this property? This will delete all its images from storage too!')) {
+      const res = await deletePropertyAction(id)
+      if (res.success) {
+        toast.success('Property deleted successfully!')
+        fetchProperties()
+      } else {
+        toast.error(res.error || 'Failed to delete property')
+      }
+    }
+  }
+
+  const handleDuplicate = async (property: Property) => {
+    const { id, created_at, updated_at, property_id, ...rest } = property
+    const newProperty = {
+      ...rest,
       title: `${property.title} (Copy)`,
-      slug: `${property.slug}-copy`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      slug: `${property.slug}-copy-${Math.floor(Math.random() * 1000)}`,
+      is_draft: true
     }
-    const updated = [duplicated, ...properties]
-    setProperties(updated)
-    saveProperties(updated)
-    toast.success('Property duplicated successfully!')
+    const propImages = (property.images || []).map(img => ({ url: img.url, caption: img.caption || '', is_thumbnail: img.is_thumbnail }))
+    const propVideos = (property.videos || []).map(vid => ({ url: vid.url, video_type: vid.video_type, title: vid.title }))
+
+    const res = await createPropertyAction(newProperty, propImages, propVideos)
+    if (res.success) {
+      toast.success('Property duplicated successfully as a draft!')
+      fetchProperties()
+    } else {
+      toast.error(res.error || 'Failed to duplicate property')
+    }
   }
 
   return (

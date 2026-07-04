@@ -7,9 +7,17 @@ import { useInView } from 'react-intersection-observer'
 import { getProperties } from '@/lib/db'
 import { formatPrice, formatArea, getStatusBadgeClass, getStatusLabel } from '@/lib/utils'
 
+import { useState, useEffect } from 'react'
+
 export default function FeaturedCarousel() {
-  const featured = getProperties().filter(p => p.is_featured)
+  const [featured, setFeatured] = useState<any[]>([])
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
+
+  useEffect(() => {
+    getProperties().then(list => {
+      setFeatured(list.filter(p => p.is_featured && p.is_active && !p.is_draft))
+    })
+  }, [])
 
   return (
     <section className="section bg-white dark:bg-background-dark" ref={ref}>

@@ -9,12 +9,31 @@ export default function FloatingButtons() {
   const [isVisible, setIsVisible] = useState(false)
   const [hoveredButton, setHoveredButton] = useState<string | null>(null)
 
+  const [contact, setContact] = useState({
+    phone: '+919511802062',
+    whatsapp: '919511802062',
+  })
+
   useEffect(() => {
     const handleScroll = () => {
       setIsVisible(window.scrollY > 300)
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
+
+    // Fetch site settings
+    const { createClient } = require('@/lib/supabase/client')
+    const supabase = createClient()
+    supabase.from('site_settings').select('key, value').then(({ data }) => {
+      if (data) {
+        const dict = data.reduce((acc: any, r: any) => ({ ...acc, [r.key]: r.value }), {} as any)
+        setContact({
+          phone: (dict.phone_primary || '+919511802062').replace(/\s+/g, ''),
+          whatsapp: (dict.whatsapp_number || '919511802062').replace(/\D/g, ''),
+        })
+      }
+    })
+
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -53,7 +72,7 @@ export default function FloatingButtons() {
               )}
             </AnimatePresence>
             <a
-              href="https://wa.me/919511802062"
+              href={`https://wa.me/${contact.whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Chat on WhatsApp"
@@ -93,7 +112,7 @@ export default function FloatingButtons() {
               )}
             </AnimatePresence>
             <a
-              href="tel:+919511802062"
+              href={`tel:${contact.phone}`}
               aria-label="Call Now"
               className={cn(
                 'flex items-center justify-center rounded-full bg-primary shadow-float',

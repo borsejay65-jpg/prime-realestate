@@ -1,12 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown } from 'lucide-react'
-import { demoFAQs } from '@/lib/demo-data'
+import { getFAQs } from '@/lib/db'
 
 export default function FAQSection() {
+  const [faqs, setFaqs] = useState<any[]>([])
   const [openIndex, setOpenIndex] = useState<number | null>(0)
+
+  useEffect(() => {
+    getFAQs().then(list => setFaqs(list.filter(f => f.is_active)))
+  }, [])
 
   return (
     <section className="section bg-white dark:bg-background-dark">
@@ -18,7 +23,7 @@ export default function FAQSection() {
         </div>
 
         <div className="max-w-3xl mx-auto">
-          {demoFAQs.map((faq, i) => (
+          {faqs.map((faq, i) => (
             <div key={faq.id} className="border-b border-gray-200 dark:border-gray-700">
               <button onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 className="w-full flex justify-between items-center py-5 text-left group" aria-expanded={openIndex === i}>

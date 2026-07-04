@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Download, Trash2, Eye, Filter, X } from 'lucide-react'
-import { getInquiries, saveInquiries } from '@/lib/db'
+import { getInquiries } from '@/lib/db'
+import { updateInquiryStatusAction, deleteInquiryAction } from '@/lib/actions'
 import { formatDate, getInquiryStatusColor, getInquiryStatusLabel } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -11,18 +12,33 @@ interface Inquiry {
 }
 
 export default function AdminInquiriesPage() {
-  const [inquiries, setInquiries] = useState<Inquiry[]>(() =>
-    getInquiries().map((inq: any) => ({
-      ...inq,
-      name: inq.name || inq.customer_name || 'Anonymous',
-      phone: inq.phone || inq.customer_phone || '',
-      email: inq.email || inq.customer_email || ''
-    }))
-  )
+  const [inquiries, setInquiries] = useState<Inquiry[]>([])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sourceFilter, setSourceFilter] = useState('')
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null)
+
+  const fetchInquiries = () => {
+    getInquiries().then(list => {
+      const mapped = list.map((inq: any) => ({
+        ...inq,
+        name: inq.name || inq.customer_name || 'Anonymous',
+        phone: inq.phone || inq.customer_phone || '',
+        email: inq.email || inq.customer_email || ''
+      }))
+      setInquiries(mapped)
+      
+      // Update selected inquiry state reference if it is open
+      if (selectedInquiry) {
+        const found = mapped.find(i => i.id === selectedInquiry.id)
+        if (found) setSelectedInquiry(found)
+      }
+    })
+  }
+
+  useEffect(() => {
+    fetchInquiries()
+  }, [])
 
   const filtered = inquiries.filter(inq => {
     const matchesSearch = inq.name.toLowerCase().includes(search.toLowerCase()) || (inq.property_title || '').toLowerCase().includes(search.toLowerCase()) || inq.phone.includes(search)
@@ -31,23 +47,26 @@ export default function AdminInquiriesPage() {
     return matchesSearch && matchesStatus && matchesSource
   })
 
-  const handleUpdateStatus = (id: string, nextStatus: string) => {
-    const updated = inquiries.map(inq => inq.id === id ? { ...inq, status: nextStatus } : inq)
-    setInquiries(updated)
-    saveInquiries(updated)
-    if (selectedInquiry?.id === id) {
-      setSelectedInquiry(prev => prev ? { ...prev, status: nextStatus } : null)
+  const handleUpdateStatus = async (id: string, nextStatus: string) => {
+    const res = await updateInquiryStatusAction(id, nextStatus)
+    if (res.success) {
+      toast.success('Inquiry status updated successfully!')
+      fetchInquiries()
+    } else {
+      toast.error(res.error || 'Failed to update status')
     }
-    toast.success('Inquiry status updated successfully!')
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this lead?')) {
-      const updated = inquiries.filter(inq => inq.id !== id)
-      setInquiries(updated)
-      saveInquiries(updated)
-      if (selectedInquiry?.id === id) setSelectedInquiry(null)
-      toast.success('Inquiry deleted successfully!')
+      const res = await deleteInquiryAction(id)
+      if (res.success) {
+        toast.success('Inquiry deleted successfully!')
+        if (selectedInquiry?.id === id) setSelectedInquiry(null)
+        fetchInquiries()
+      } else {
+        toast.error(res.error || 'Failed to delete inquiry')
+      }
     }
   }
 

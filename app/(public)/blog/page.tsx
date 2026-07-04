@@ -1,12 +1,17 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, Home } from 'lucide-react'
 import { getBlogs } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 export default function BlogPage() {
-  const blogs = getBlogs()
+  const [blogs, setBlogs] = useState<any[]>([])
+
+  useEffect(() => {
+    getBlogs().then(list => setBlogs(list.filter(b => b.status === 'published')))
+  }, [])
 
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark pt-24 pb-16">

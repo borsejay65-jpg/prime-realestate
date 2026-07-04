@@ -1,28 +1,71 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Phone, Mail, MapPin, Clock, MessageCircle, Send, Facebook, Instagram, Twitter, Linkedin, Youtube } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { getSettings } from '@/lib/db'
+import { createInquiryAction } from '@/lib/actions'
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', phone: '', email: '', subject: '', message: '' })
   const [loading, setLoading] = useState(false)
+  const [contactData, setContactData] = useState({
+    phone: '+91 9511802062',
+    whatsapp: '+91 9511802062',
+    email: 'info@primeaxis.in',
+    address: 'Office 101, Central Plaza, Court Road, Jalgaon, Maharashtra 425001',
+    hours: 'Mon – Sat: 9:30 AM – 7:00 PM',
+    google_maps_embed: ''
+  })
+
+  useEffect(() => {
+    getSettings().then(dict => {
+      setContactData({
+        phone: dict.phone_primary || '+91 9511802062',
+        whatsapp: dict.whatsapp_number || '+91 9511802062',
+        email: dict.email_primary || 'info@primeaxis.in',
+        address: dict.address || 'Office 101, Central Plaza, Court Road, Jalgaon, Maharashtra 425001',
+        hours: dict.business_hours || 'Mon – Sat: 9:30 AM – 7:00 PM',
+        google_maps_embed: dict.google_maps_embed || ''
+      })
+    })
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.name || !form.phone) { toast.error('Name and phone are required'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    toast.success('Message sent! We will contact you shortly.')
-    setForm({ name: '', phone: '', email: '', subject: '', message: '' })
+    
+    try {
+      const newInquiry = {
+        customer_name: form.name,
+        customer_phone: form.phone,
+        customer_email: form.email || '',
+        property_title: form.subject ? `Subject: ${form.subject}` : 'General Inquiry (Contact Page)',
+        message: form.message,
+        source: 'website_form',
+        status: 'new'
+      }
+      const res = await createInquiryAction(newInquiry)
+      if (res.success) {
+        toast.success('Message sent! We will contact you shortly.')
+        setForm({ name: '', phone: '', email: '', subject: '', message: '' })
+      } else {
+        toast.error(res.error || 'Failed to submit inquiry')
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'An error occurred')
+    }
+
     setLoading(false)
   }
 
   const contacts = [
-    { icon: Phone, label: 'Phone', value: '+91 9511802062', href: 'tel:+919511802062' },
-    { icon: Mail, label: 'Email', value: 'info@primeaxis.in', href: 'mailto:info@primeaxis.in' },
-    { icon: MapPin, label: 'Address', value: 'Office 101, Central Plaza, Court Road, Jalgaon, Maharashtra - 425001' },
-    { icon: Clock, label: 'Hours', value: 'Mon-Sat: 9AM-7PM | Sun: 10AM-5PM' },
+    { icon: Phone, label: 'Phone', value: contactData.phone, href: `tel:${contactData.phone.replace(/[^0-9+]/g, '')}` },
+    { icon: Mail, label: 'Email', value: contactData.email, href: `mailto:${contactData.email}` },
+    { icon: MapPin, label: 'Address', value: contactData.address },
+    { icon: Clock, label: 'Hours', value: contactData.hours },
   ]
 
   return (
@@ -71,12 +114,12 @@ export default function ContactPage() {
               ))}
             </div>
             <div className="rounded-2xl overflow-hidden shadow-card">
-              <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d59614.3725838048!2d75.527555!3d21.007658!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bd90fa4a1eab90f%3A0x37f67bd21bff0a3c!2sJalgaon%2C+Maharashtra!5e0!3m2!1sen!2sin"
+              <iframe src={contactData.google_maps_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d59614.3725838048!2d75.527555!3d21.007658!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bd90fa4a1eab90f%3A0x37f67bd21bff0a3c!2sJalgaon%2C+Maharashtra!5e0!3m2!1sen!2sin"}
                 width="100%" height="300" style={{ border: 0 }} allowFullScreen loading="lazy" title="PrimeAxis Location" />
             </div>
             <div className="flex gap-3">
-              <a href="https://wa.me/919511802062?text=Hi%20PrimeAxis!" target="_blank" rel="noopener" className="btn-whatsapp flex-1"><MessageCircle className="w-5 h-5" /> WhatsApp</a>
-              <a href="tel:+919511802062" className="btn-call flex-1"><Phone className="w-5 h-5" /> Call Now</a>
+              <a href={`https://wa.me/${contactData.whatsapp.replace(/\D/g, '')}?text=Hi%20PrimeAxis!`} target="_blank" rel="noopener" className="btn-whatsapp flex-1"><MessageCircle className="w-5 h-5" /> WhatsApp</a>
+              <a href={`tel:${contactData.phone.replace(/\s+/g, '')}`} className="btn-call flex-1"><Phone className="w-5 h-5" /> Call Now</a>
             </div>
             <div className="flex gap-3 justify-center">
               {[Facebook, Instagram, Twitter, Linkedin, Youtube].map((Icon, i) => (

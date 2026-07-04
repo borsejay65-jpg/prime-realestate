@@ -6,12 +6,23 @@ import { ArrowLeft, Save, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { generateSlug, PROPERTY_TYPES, PROPERTY_STATUSES, FACING_OPTIONS, OWNERSHIP_OPTIONS } from '@/lib/utils'
+import { createPropertyAction } from '@/lib/actions'
+import RichTextEditor from '@/components/shared/RichTextEditor'
+import MediaUploader from '@/components/property/MediaUploader'
+
+interface PropertyImage {
+  url: string
+  is_thumbnail: boolean
+  display_order: number
+}
 
 export default function NewPropertyPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [propertyId] = useState(() => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substr(2, 9))
+  
   const [highlights, setHighlights] = useState<string[]>([''])
-  const [images, setImages] = useState<string[]>([''])
+  const [images, setImages] = useState<PropertyImage[]>([])
 
   const [form, setForm] = useState({
     title: '',
@@ -38,8 +49,8 @@ export default function NewPropertyPage() {
     state: 'Maharashtra',
     pincode: '',
     map_embed_url: '',
-    thumbnail_url: '',
     brochure_url: '',
+    floorplan_url: '',
     seo_title: '',
     seo_description: '',
     is_featured: false,
@@ -62,14 +73,6 @@ export default function NewPropertyPage() {
     setHighlights(next)
   }
 
-  const handleAddImage = () => setImages([...images, ''])
-  const handleRemoveImage = (idx: number) => setImages(images.filter((_, i) => i !== idx))
-  const handleImageChange = (idx: number, val: string) => {
-    const next = [...images]
-    next[idx] = val
-    setImages(next)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.title) {
@@ -77,28 +80,13 @@ export default function NewPropertyPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 600))
-    
+
     try {
-      const { getProperties, saveProperties } = require('@/lib/db')
-      const currentList = getProperties()
-      const newId = Math.random().toString(36).substr(2, 9)
-      
-      const propertyImages = images
-        .filter(img => img.trim() !== '')
-        .map((url, index) => ({
-          id: Math.random().toString(36).substr(2, 9),
-          property_id: newId,
-          url: url,
-          caption: `Gallery Image ${index + 1}`,
-          display_order: index,
-          is_thumbnail: index === 0,
-          created_at: new Date().toISOString()
-        }))
+      const featuredImage = images.find(img => img.is_thumbnail) || images[0]
+      const thumbnailUrl = featuredImage ? featuredImage.url : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'
 
       const newProperty = {
-        id: newId,
-        property_id: `PA-2026-${Math.floor(100 + Math.random() * 900)}`,
+        id: propertyId,
         title: form.title,
         slug: form.slug || generateSlug(form.title),
         description: form.description,
@@ -125,27 +113,30 @@ export default function NewPropertyPage() {
         state: form.state,
         pincode: form.pincode,
         map_embed_url: form.map_embed_url,
-        thumbnail_url: form.thumbnail_url || (propertyImages[0] ? propertyImages[0].url : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'),
+        thumbnail_url: thumbnailUrl,
+        brochure_url: form.brochure_url || null,
         is_featured: form.is_featured,
         is_active: form.is_published,
         is_draft: !form.is_published,
-        views: 0,
-        inquiry_count: 0,
         seo_title: form.seo_title || form.title,
         seo_description: form.seo_description || '',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        images: propertyImages
+        views: 0,
+        inquiry_count: 0
       }
-      
-      saveProperties([newProperty, ...currentList])
-      toast.success('Property created successfully!')
-      router.push('/admin/properties')
-    } catch (err) {
+
+      const res = await createPropertyAction(newProperty, images)
+      if (res.success) {
+        toast.success('Property created successfully!')
+        router.push('/admin/properties')
+      } else {
+        toast.error(res.error || 'Failed to save property')
+      }
+    } catch (err: any) {
       console.error(err)
-      toast.error('Failed to create property')
+      toast.error(err.message || 'Failed to create property')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -157,47 +148,59 @@ export default function NewPropertyPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Add New Property</h1>
         </div>
-        <button type="submit" disabled={loading} className="btn-gold flex items-center gap-2 text-sm">
+        <button type="submit" disabled={loading} className="btn-gold flex items-center gap-2 text-sm font-semibold">
           <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save Property'}
         </button>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
+        {/* Main Form Fields */}
         <div className="lg:col-span-2 space-y-6">
           {/* Basic Info */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Basic Info</h2>
+            <h2 className="text-lg font-bold text-gray-850 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Basic Info</h2>
+            
             <div>
-              <label className="label">Title *</label>
+              <label className="label">Property Title *</label>
               <input
                 type="text"
                 className="input"
-                placeholder="e.g. Premium 3 BHK Apartment in Baner"
+                placeholder="e.g. 3 BHK Luxury Villa in Baner"
                 value={form.title}
                 onChange={e => handleTitleChange(e.target.value)}
                 required
               />
             </div>
+
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="label">Slug</label>
+                <label className="label">Slug (URL)</label>
                 <input
                   type="text"
-                  className="input bg-gray-50/50 dark:bg-gray-800/30"
+                  className="input"
+                  placeholder="3-bhk-luxury-villa-in-baner"
                   value={form.slug}
                   onChange={e => setForm(prev => ({ ...prev, slug: e.target.value }))}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="label">Property Type</label>
-                  <select className="select" value={form.property_type} onChange={e => setForm(prev => ({ ...prev, property_type: e.target.value }))}>
+                  <select
+                    className="select"
+                    value={form.property_type}
+                    onChange={e => setForm(prev => ({ ...prev, property_type: e.target.value }))}
+                  >
                     {PROPERTY_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="label">Status</label>
-                  <select className="select" value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value }))}>
+                  <label className="label">Listing Status</label>
+                  <select
+                    className="select"
+                    value={form.status}
+                    onChange={e => setForm(prev => ({ ...prev, status: e.target.value }))}
+                  >
                     {PROPERTY_STATUSES.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
@@ -210,121 +213,219 @@ export default function NewPropertyPage() {
                 <input
                   type="number"
                   className="input"
-                  placeholder="e.g. 12500000"
+                  placeholder="e.g. 15000000"
                   value={form.price}
                   onChange={e => setForm(prev => ({ ...prev, price: e.target.value }))}
                   required
                 />
               </div>
               <div>
-                <label className="label">Price Label (Optional)</label>
+                <label className="label">Price Display Label</label>
                 <input
                   type="text"
                   className="input"
-                  placeholder="e.g. 1.25 Cr"
+                  placeholder="e.g. 1.5 Cr, 45k/mo"
                   value={form.price_label}
                   onChange={e => setForm(prev => ({ ...prev, price_label: e.target.value }))}
                 />
               </div>
-              <div className="flex items-center mt-8">
-                <label className="flex items-center gap-2 cursor-pointer text-sm">
-                  <input
-                    type="checkbox"
-                    checked={form.price_negotiable}
-                    onChange={e => setForm(prev => ({ ...prev, price_negotiable: e.target.checked }))}
-                    className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
-                  />
-                  <span>Negotiable</span>
-                </label>
+              <div className="flex items-center gap-2 h-full pt-6">
+                <input
+                  id="negotiable"
+                  type="checkbox"
+                  checked={form.price_negotiable}
+                  onChange={e => setForm(prev => ({ ...prev, price_negotiable: e.target.checked }))}
+                  className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
+                />
+                <label htmlFor="negotiable" className="text-sm font-semibold text-gray-700 dark:text-gray-300 select-none">Price Negotiable</label>
+              </div>
+            </div>
+
+            <div>
+              <label className="label">Property Description</label>
+              <RichTextEditor
+                value={form.description}
+                onChange={val => setForm(prev => ({ ...prev, description: val }))}
+              />
+            </div>
+          </div>
+
+          {/* Specifications */}
+          <div className="card p-6 space-y-4">
+            <h2 className="text-lg font-bold text-gray-850 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Specs & Details</h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="label">Area (Sq.Ft.)</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.area_sqft}
+                  onChange={e => setForm(prev => ({ ...prev, area_sqft: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label">Bedrooms</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.bedrooms}
+                  onChange={e => setForm(prev => ({ ...prev, bedrooms: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label">Bathrooms</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.bathrooms}
+                  onChange={e => setForm(prev => ({ ...prev, bathrooms: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="label">Balconies</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.balcony}
+                  onChange={e => setForm(prev => ({ ...prev, balcony: e.target.value }))}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
-                <label className="label">Area (Sq.Ft)</label>
-                <input type="number" className="input" placeholder="e.g. 1500" value={form.area_sqft} onChange={e => setForm(prev => ({ ...prev, area_sqft: e.target.value }))} />
+                <label className="label">Parkings</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.parking}
+                  onChange={e => setForm(prev => ({ ...prev, parking: e.target.value }))}
+                />
               </div>
               <div>
-                <label className="label">Bedrooms</label>
-                <input type="number" className="input" placeholder="e.g. 3" value={form.bedrooms} onChange={e => setForm(prev => ({ ...prev, bedrooms: e.target.value }))} />
+                <label className="label">Floor No.</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.floor}
+                  onChange={e => setForm(prev => ({ ...prev, floor: e.target.value }))}
+                />
               </div>
               <div>
-                <label className="label">Bathrooms</label>
-                <input type="number" className="input" placeholder="e.g. 3" value={form.bathrooms} onChange={e => setForm(prev => ({ ...prev, bathrooms: e.target.value }))} />
+                <label className="label">Total Floors</label>
+                <input
+                  type="number"
+                  className="input"
+                  value={form.total_floors}
+                  onChange={e => setForm(prev => ({ ...prev, total_floors: e.target.value }))}
+                />
               </div>
               <div>
-                <label className="label">Parking Slots</label>
-                <input type="number" className="input" placeholder="e.g. 2" value={form.parking} onChange={e => setForm(prev => ({ ...prev, parking: e.target.value }))} />
+                <label className="label">Facing Direction</label>
+                <select
+                  className="select"
+                  value={form.facing}
+                  onChange={e => setForm(prev => ({ ...prev, facing: e.target.value }))}
+                >
+                  {FACING_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                </select>
               </div>
             </div>
 
             <div className="grid md:grid-cols-3 gap-4">
               <div>
-                <label className="label">Construction Status</label>
-                <select className="select" value={form.construction_status} onChange={e => setForm(prev => ({ ...prev, construction_status: e.target.value }))}>
-                  <option value="under_construction">Under Construction</option>
-                  <option value="ready_to_move">Ready to Move</option>
-                  <option value="new_launch">New Launch</option>
+                <label className="label">Ownership Type</label>
+                <select
+                  className="select"
+                  value={form.ownership}
+                  onChange={e => setForm(prev => ({ ...prev, ownership: e.target.value }))}
+                >
+                  {OWNERSHIP_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                 </select>
               </div>
               <div>
-                <label className="label">Facing</label>
-                <select className="select" value={form.facing} onChange={e => setForm(prev => ({ ...prev, facing: e.target.value }))}>
-                  {FACING_OPTIONS.map(f => <option key={f} value={f}>{f}</option>)}
+                <label className="label">Construction Status</label>
+                <select
+                  className="select"
+                  value={form.construction_status}
+                  onChange={e => setForm(prev => ({ ...prev, construction_status: e.target.value }))}
+                >
+                  <option value="ready_to_move">Ready To Move</option>
+                  <option value="under_construction">Under Construction</option>
+                  <option value="new_launch">New Launch</option>
+                  <option value="resale">Resale</option>
                 </select>
               </div>
               <div>
                 <label className="label">Possession Date</label>
-                <input type="date" className="input" value={form.possession_date} onChange={e => setForm(prev => ({ ...prev, possession_date: e.target.value }))} />
+                <input
+                  type="date"
+                  className="input"
+                  value={form.possession_date}
+                  onChange={e => setForm(prev => ({ ...prev, possession_date: e.target.value }))}
+                />
               </div>
-            </div>
-
-            <div>
-              <label className="label">Description</label>
-              <textarea
-                className="textarea"
-                rows={5}
-                placeholder="Write detailed description of the property..."
-                value={form.description}
-                onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-              />
             </div>
           </div>
 
-          {/* Location */}
+          {/* Media Uploader System */}
+          <MediaUploader
+            propertyId={propertyId}
+            images={images}
+            onChange={setImages}
+            brochureUrl={form.brochure_url}
+            onBrochureChange={url => setForm(prev => ({ ...prev, brochure_url: url }))}
+            floorPlanUrl={form.floorplan_url}
+            onFloorPlanChange={url => setForm(prev => ({ ...prev, floorplan_url: url }))}
+          />
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-6">
+          {/* Location details */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Location</h2>
+            <h2 className="text-lg font-bold text-gray-855 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Location</h2>
+            
             <div>
-              <label className="label">Full Address *</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. Flat 502, Wing B, Emerald Heights, Baner Road"
+              <label className="label">Address / Locality *</label>
+              <textarea
+                className="textarea"
+                rows={2}
+                placeholder="Locality area name"
                 value={form.location}
                 onChange={e => setForm(prev => ({ ...prev, location: e.target.value }))}
                 required
               />
             </div>
-            <div className="grid md:grid-cols-3 gap-4">
+
+            <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="label">City</label>
-                <input type="text" className="input" value={form.city} onChange={e => setForm(prev => ({ ...prev, city: e.target.value }))} />
-              </div>
-              <div>
-                <label className="label">State</label>
-                <input type="text" className="input" value={form.state} onChange={e => setForm(prev => ({ ...prev, state: e.target.value }))} />
+                <input
+                  type="text"
+                  className="input"
+                  value={form.city}
+                  onChange={e => setForm(prev => ({ ...prev, city: e.target.value }))}
+                />
               </div>
               <div>
                 <label className="label">Pincode</label>
-                <input type="text" className="input" placeholder="e.g. 411045" value={form.pincode} onChange={e => setForm(prev => ({ ...prev, pincode: e.target.value }))} />
+                <input
+                  type="text"
+                  className="input"
+                  value={form.pincode}
+                  onChange={e => setForm(prev => ({ ...prev, pincode: e.target.value }))}
+                />
               </div>
             </div>
+
             <div>
-              <label className="label">Google Maps Embed iframe URL</label>
+              <label className="label">Google Maps Embed URL</label>
               <input
                 type="text"
                 className="input"
-                placeholder="https://www.google.com/maps/embed?pb=..."
+                placeholder="https://google.com/maps/embed..."
                 value={form.map_embed_url}
                 onChange={e => setForm(prev => ({ ...prev, map_embed_url: e.target.value }))}
               />
@@ -333,20 +434,20 @@ export default function NewPropertyPage() {
 
           {/* Highlights */}
           <div className="card p-6 space-y-4">
-            <div className="flex justify-between items-center mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">
-              <h2 className="text-lg font-bold text-gray-800 dark:text-white">Property Highlights</h2>
-              <button type="button" onClick={handleAddHighlight} className="text-gold text-sm hover:underline flex items-center gap-1">
-                <Plus className="w-4 h-4" /> Add
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-gray-800 pb-2">
+              <h2 className="text-lg font-bold text-gray-855 dark:text-white">Highlights</h2>
+              <button type="button" onClick={handleAddHighlight} className="text-gold text-sm hover:underline flex items-center gap-0.5">
+                <Plus className="w-3.5 h-3.5" /> Add
               </button>
             </div>
-            <div className="space-y-3">
-              {highlights.map((highlight, idx) => (
+            <div className="space-y-2">
+              {highlights.map((h, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
                   <input
                     type="text"
                     className="input flex-1"
-                    placeholder="e.g. Double height living room"
-                    value={highlight}
+                    placeholder="Bullet highlight point"
+                    value={h}
                     onChange={e => handleHighlightChange(idx, e.target.value)}
                   />
                   {highlights.length > 1 && (
@@ -358,13 +459,12 @@ export default function NewPropertyPage() {
               ))}
             </div>
           </div>
-        </div>
 
-        <div className="space-y-6">
-          {/* Publish & Status */}
+          {/* Visibility settings */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Publish Settings</h2>
-            <div className="space-y-3">
+            <h2 className="text-lg font-bold text-gray-855 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Visibility Settings</h2>
+            
+            <div className="flex flex-col gap-3">
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
                   type="checkbox"
@@ -372,7 +472,7 @@ export default function NewPropertyPage() {
                   onChange={e => setForm(prev => ({ ...prev, is_published: e.target.checked }))}
                   className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
                 />
-                <span>Active / Published Listing</span>
+                <span className="font-semibold text-gray-700 dark:text-gray-350">Active / Published Listing</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer text-sm">
                 <input
@@ -381,66 +481,14 @@ export default function NewPropertyPage() {
                   onChange={e => setForm(prev => ({ ...prev, is_featured: e.target.checked }))}
                   className="w-4 h-4 rounded text-gold focus:ring-gold border-gray-300"
                 />
-                <span>Feature on Homepage</span>
+                <span className="font-semibold text-gray-700 dark:text-gray-350">Feature on Homepage</span>
               </label>
-            </div>
-          </div>
-
-          {/* Media Links */}
-          <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">Media & Files</h2>
-            <div>
-              <label className="label">Thumbnail Image URL *</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="https://unsplash.com/..."
-                value={form.thumbnail_url}
-                onChange={e => setForm(prev => ({ ...prev, thumbnail_url: e.target.value }))}
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Brochure PDF URL</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="https://..."
-                value={form.brochure_url}
-                onChange={e => setForm(prev => ({ ...prev, brochure_url: e.target.value }))}
-              />
-            </div>
-            <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-semibold">Gallery Images</span>
-                <button type="button" onClick={handleAddImage} className="text-gold text-sm hover:underline flex items-center gap-1">
-                  <Plus className="w-4 h-4" /> Add
-                </button>
-              </div>
-              <div className="space-y-3">
-                {images.map((image, idx) => (
-                  <div key={idx} className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      className="input flex-1"
-                      placeholder="Image URL"
-                      value={image}
-                      onChange={e => handleImageChange(idx, e.target.value)}
-                    />
-                    {images.length > 1 && (
-                      <button type="button" onClick={() => handleRemoveImage(idx)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
           {/* SEO Info */}
           <div className="card p-6 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">SEO Meta Data</h2>
+            <h2 className="text-lg font-bold text-gray-855 dark:text-white mb-2 border-b border-gray-100 dark:border-gray-800 pb-2">SEO Meta Data</h2>
             <div>
               <label className="label">Meta Title</label>
               <input

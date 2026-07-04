@@ -1,18 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Building2, Star, Users, ShieldCheck, Key, Eye, Plus, ArrowRight, TrendingUp } from 'lucide-react'
-import { demoInquiries } from '@/lib/demo-data'
+import { getProperties, getInquiries } from '@/lib/db'
 import { formatDate, getInquiryStatusColor, getInquiryStatusLabel } from '@/lib/utils'
-
-const kpis = [
-  { label: 'Total Properties', value: '156', icon: Building2, color: 'bg-blue-500/10 text-blue-600' },
-  { label: 'Featured', value: '24', icon: Star, color: 'bg-amber-500/10 text-amber-600' },
-  { label: 'Total Leads', value: '89', icon: Users, color: 'bg-green-500/10 text-green-600' },
-  { label: 'Sold', value: '45', icon: ShieldCheck, color: 'bg-emerald-500/10 text-emerald-600' },
-  { label: 'For Rent', value: '32', icon: Key, color: 'bg-purple-500/10 text-purple-600' },
-  { label: 'Total Views', value: '12.5K', icon: Eye, color: 'bg-orange-500/10 text-orange-600' },
-]
+import type { Property, Inquiry } from '@/types/database'
 
 const leadData = [
   { month: 'Jan', leads: 12 }, { month: 'Feb', leads: 19 }, { month: 'Mar', leads: 28 },
@@ -20,6 +13,53 @@ const leadData = [
 ]
 
 export default function AdminDashboard() {
+  const [properties, setProperties] = useState<Property[]>([])
+  const [inquiries, setInquiries] = useState<Inquiry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([getProperties(), getInquiries()]).then(([props, inqs]) => {
+      setProperties(props)
+      setInquiries(inqs)
+      setLoading(false)
+    }).catch(err => {
+      console.error(err)
+      setLoading(false)
+    })
+  }, [])
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500">Loading Dashboard...</div>
+  }
+
+  const totalProperties = properties.length
+  const featured = properties.filter(p => p.is_featured).length
+  const totalLeads = inquiries.length
+  const sold = properties.filter(p => p.status === 'sold' || p.status === 'rented').length
+  const forRent = properties.filter(p => p.status === 'for_rent').length
+  const totalViews = properties.reduce((acc, p) => acc + (p.views || 0), 0)
+
+  const kpis = [
+    { label: 'Total Properties', value: String(totalProperties), icon: Building2, color: 'bg-blue-500/10 text-blue-600' },
+    { label: 'Featured', value: String(featured), icon: Star, color: 'bg-amber-500/10 text-amber-600' },
+    { label: 'Total Leads', value: String(totalLeads), icon: Users, color: 'bg-green-500/10 text-green-600' },
+    { label: 'Sold / Rented', value: String(sold), icon: ShieldCheck, color: 'bg-emerald-500/10 text-emerald-600' },
+    { label: 'For Rent', value: String(forRent), icon: Key, color: 'bg-purple-500/10 text-purple-600' },
+    { label: 'Total Views', value: String(totalViews), icon: Eye, color: 'bg-orange-500/10 text-orange-600' },
+  ]
+
+  const saleCount = properties.filter(p => p.status === 'for_sale').length
+  const rentCount = properties.filter(p => p.status === 'for_rent').length
+  const soldCount = properties.filter(p => p.status === 'sold').length
+  const rentedCount = properties.filter(p => p.status === 'rented').length
+
+  const dist = [
+    { name: 'For Sale', count: saleCount, pct: totalProperties ? Math.round((saleCount / totalProperties) * 100) : 0, color: 'bg-blue-500' },
+    { name: 'For Rent', count: rentCount, pct: totalProperties ? Math.round((rentCount / totalProperties) * 100) : 0, color: 'bg-purple-500' },
+    { name: 'Sold', count: soldCount, pct: totalProperties ? Math.round((soldCount / totalProperties) * 100) : 0, color: 'bg-emerald-500' },
+    { name: 'Rented / Booked', count: rentedCount, pct: totalProperties ? Math.round((rentedCount / totalProperties) * 100) : 0, color: 'bg-amber-500' },
+  ]
+
   const maxLeads = Math.max(...leadData.map(d => d.leads))
 
   return (
@@ -64,8 +104,7 @@ export default function AdminDashboard() {
         <div className="card p-6">
           <h2 className="font-semibold text-gray-800 dark:text-white mb-6">Property Distribution</h2>
           <div className="space-y-4">
-            {[{ name: 'For Sale', count: 67, pct: 43, color: 'bg-blue-500' }, { name: 'For Rent', count: 32, pct: 21, color: 'bg-purple-500' },
-              { name: 'Sold', count: 45, pct: 29, color: 'bg-emerald-500' }, { name: 'Booked', count: 12, pct: 7, color: 'bg-amber-500' }].map(s => (
+            {dist.map(s => (
               <div key={s.name}>
                 <div className="flex justify-between text-sm mb-1"><span className="text-gray-600 dark:text-gray-400">{s.name}</span><span className="font-semibold">{s.count}</span></div>
                 <div className="h-3 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -93,20 +132,25 @@ export default function AdminDashboard() {
               <th className="text-left p-4 text-gray-500 font-medium hidden lg:table-cell">Date</th>
             </tr></thead>
             <tbody>
-              {demoInquiries.slice(0, 8).map((inq: any) => {
+              {inquiries.slice(0, 8).map((inq: any) => {
                 const name = inq.name || inq.customer_name || 'Anonymous'
                 const phone = inq.phone || inq.customer_phone || ''
                 return (
                   <tr key={inq.id} className="border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
                     <td className="p-4 font-medium text-gray-800 dark:text-white">{name}</td>
                     <td className="p-4"><a href={`tel:${phone}`} className="text-primary dark:text-gold hover:underline">{phone}</a></td>
-                    <td className="p-4 text-gray-600 dark:text-gray-400 hidden md:table-cell max-w-[200px] truncate">{inq.property_title}</td>
+                    <td className="p-4 text-gray-600 dark:text-gray-400 hidden md:table-cell max-w-[200px] truncate">{inq.property_title || 'General Inquiry'}</td>
                     <td className="p-4 hidden sm:table-cell"><span className="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">{inq.source}</span></td>
                     <td className="p-4"><span className={`badge ${getInquiryStatusColor(inq.status)}`}>{getInquiryStatusLabel(inq.status)}</span></td>
                     <td className="p-4 text-gray-500 hidden lg:table-cell">{formatDate(inq.created_at)}</td>
                   </tr>
                 )
               })}
+              {inquiries.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-400">No recent inquiries found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

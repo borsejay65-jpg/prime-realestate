@@ -1,18 +1,22 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Save, Upload, X } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import { generateSlug } from '@/lib/utils'
-import { createBlogPostAction } from '@/lib/actions'
+import { updateBlogPostAction } from '@/lib/actions'
 import RichTextEditor from '@/components/shared/RichTextEditor'
 import { createClient } from '@/lib/supabase/client'
 
-export default function NewBlogPostPage() {
+export default function EditBlogPostPage() {
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
+  
   const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
   const [uploading, setUploading] = useState(false)
 
   const [form, setForm] = useState({
@@ -26,6 +30,37 @@ export default function NewBlogPostPage() {
     seo_title: '',
     seo_description: ''
   })
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('blogs')
+      .select('*')
+      .eq('id', id)
+      .single()
+      .then(({ data: blog, error }) => {
+        if (error) {
+          console.error(error)
+          toast.error('Failed to load blog post details')
+          router.push('/admin/blogs')
+          return
+        }
+        if (blog) {
+          setForm({
+            title: blog.title || '',
+            slug: blog.slug || '',
+            excerpt: blog.excerpt || '',
+            content: blog.content || '',
+            featured_image: blog.featured_image || '',
+            status: blog.status || 'published',
+            tags: (blog.tags || []).join(', '),
+            seo_title: blog.seo_title || '',
+            seo_description: blog.seo_description || ''
+          })
+        }
+        setFetching(false)
+      })
+  }, [id])
 
   const handleTitleChange = (val: string) => {
     setForm(prev => ({
@@ -74,32 +109,36 @@ export default function NewBlogPostPage() {
     setLoading(true)
     
     try {
-      const newPost = {
+      const updatedPost = {
         title: form.title,
         slug: form.slug || generateSlug(form.title),
         excerpt: form.excerpt,
         content: form.content,
-        featured_image: form.featured_image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+        featured_image: form.featured_image,
         status: form.status,
         tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
         seo_title: form.seo_title || form.title,
         seo_description: form.seo_description || '',
-        views: 0
+        updated_at: new Date().toISOString()
       }
       
-      const res = await createBlogPostAction(newPost)
+      const res = await updateBlogPostAction(id, updatedPost)
       if (res.success) {
-        toast.success('Blog post created successfully!')
+        toast.success('Blog post updated successfully!')
         router.push('/admin/blogs')
       } else {
-        toast.error(res.error || 'Failed to create blog post')
+        toast.error(res.error || 'Failed to update blog post')
       }
     } catch (err: any) {
       console.error(err)
-      toast.error(err.message || 'Failed to create post')
+      toast.error(err.message || 'Failed to update post')
     } finally {
       setLoading(false)
     }
+  }
+
+  if (fetching) {
+    return <div className="p-8 text-center text-gray-500">Loading Blog Post details...</div>
   }
 
   return (
@@ -109,10 +148,10 @@ export default function NewBlogPostPage() {
           <Link href="/admin/blogs" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-500" />
           </Link>
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">New Blog Post</h1>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Edit Blog Post</h1>
         </div>
         <button type="submit" disabled={loading} className="btn-gold flex items-center gap-2 text-sm font-semibold">
-          <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save Post'}
+          <Save className="w-4 h-4" /> {loading ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 

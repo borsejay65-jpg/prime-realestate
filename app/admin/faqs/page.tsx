@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit2, Save, X } from 'lucide-react'
-import { demoFAQs } from '@/lib/demo-data'
+import { getFAQs } from '@/lib/db'
+import { createFAQAction, updateFAQAction, deleteFAQAction } from '@/lib/actions'
 import toast from 'react-hot-toast'
 
 interface FAQ {
@@ -10,9 +11,7 @@ interface FAQ {
 }
 
 export default function AdminFAQsPage() {
-  const [faqs, setFaqs] = useState<FAQ[]>(
-    demoFAQs.map((f, i) => ({ ...f, category: 'General', display_order: i + 1, is_active: true }))
-  )
+  const [faqs, setFaqs] = useState<FAQ[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<FAQ | null>(null)
 
@@ -23,6 +22,14 @@ export default function AdminFAQsPage() {
     display_order: 1,
     is_active: true
   })
+
+  const fetchFAQs = () => {
+    getFAQs().then(setFaqs)
+  }
+
+  useEffect(() => {
+    fetchFAQs()
+  }, [])
 
   const openAddModal = () => {
     setEditingItem(null)
@@ -48,31 +55,47 @@ export default function AdminFAQsPage() {
     setIsModalOpen(true)
   }
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.question || !form.answer) {
       toast.error('Question and Answer are required')
       return
     }
 
-    if (editingItem) {
-      setFaqs(prev => prev.map(f => f.id === editingItem.id ? { ...f, ...form } : f))
-      toast.success('FAQ updated successfully!')
-    } else {
-      const newItem: FAQ = {
-        ...form,
-        id: Math.random().toString(36).substring(2)
+    try {
+      if (editingItem) {
+        const res = await updateFAQAction(editingItem.id, form)
+        if (res.success) {
+          toast.success('FAQ updated successfully!')
+          fetchFAQs()
+        } else {
+          toast.error(res.error || 'Failed to update FAQ')
+        }
+      } else {
+        const res = await createFAQAction(form)
+        if (res.success) {
+          toast.success('FAQ added successfully!')
+          fetchFAQs()
+        } else {
+          toast.error(res.error || 'Failed to create FAQ')
+        }
       }
-      setFaqs(prev => [...prev, newItem])
-      toast.success('FAQ added successfully!')
+      setIsModalOpen(false)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'An error occurred')
     }
-    setIsModalOpen(false)
   }
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this FAQ?')) {
-      setFaqs(prev => prev.filter(f => f.id !== id))
-      toast.success('FAQ deleted successfully!')
+      const res = await deleteFAQAction(id)
+      if (res.success) {
+        toast.success('FAQ deleted successfully!')
+        fetchFAQs()
+      } else {
+        toast.error(res.error || 'Failed to delete FAQ')
+      }
     }
   }
 

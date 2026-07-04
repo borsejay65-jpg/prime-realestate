@@ -1,24 +1,37 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
-import { getBlogs, saveBlogs } from '@/lib/db'
+import { getBlogs } from '@/lib/db'
+import { deleteBlogPostAction } from '@/lib/actions'
 import { formatDate } from '@/lib/utils'
+import type { Blog } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function AdminBlogsPage() {
-  const [blogs, setBlogs] = useState(() => getBlogs())
+  const [blogs, setBlogs] = useState<Blog[]>([])
   const [search, setSearch] = useState('')
 
-  const filtered = blogs.filter(b => b.title.toLowerCase().includes(search.toLowerCase()))
+  const fetchBlogs = () => {
+    getBlogs().then(setBlogs)
+  }
 
-  const handleDelete = (id: string) => {
+  useEffect(() => {
+    fetchBlogs()
+  }, [])
+
+  const filtered = blogs.filter(b => (b.title || '').toLowerCase().includes(search.toLowerCase()))
+
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
-      const updated = blogs.filter(b => b.id !== id)
-      setBlogs(updated)
-      saveBlogs(updated)
-      toast.success('Blog post deleted successfully!')
+      const res = await deleteBlogPostAction(id)
+      if (res.success) {
+        toast.success('Blog post deleted successfully!')
+        fetchBlogs()
+      } else {
+        toast.error(res.error || 'Failed to delete blog post')
+      }
     }
   }
 

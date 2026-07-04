@@ -24,6 +24,25 @@ export default function Header() {
   const isHomepage = pathname === '/'
   const showGlass = isScrolled || !isHomepage
 
+  const [contact, setContact] = useState({
+    phone: '+91 9511802062',
+    whatsapp: '+91 9511802062',
+  })
+
+  useEffect(() => {
+    const { createClient } = require('@/lib/supabase/client')
+    const supabase = createClient()
+    supabase.from('site_settings').select('key, value').then(({ data }) => {
+      if (data) {
+        const dict = data.reduce((acc: any, r: any) => ({ ...acc, [r.key]: r.value }), {} as any)
+        setContact({
+          phone: dict.phone_primary || '+91 9511802062',
+          whatsapp: dict.whatsapp_number || '+91 9511802062',
+        })
+      }
+    })
+  }, [])
+
   // Handle scroll
   useEffect(() => {
     const handleScroll = () => {
@@ -150,7 +169,7 @@ export default function Header() {
 
               {/* WhatsApp CTA */}
               <a
-                href="https://wa.me/919511802062"
+                href={`https://wa.me/${contact.whatsapp.replace(/[^0-9]/g, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold
@@ -163,7 +182,7 @@ export default function Header() {
 
               {/* Call CTA */}
               <a
-                href="tel:+919511802062"
+                href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}
                 className="btn-primary !py-2.5 !text-sm"
               >
                 <Phone className="h-4 w-4" />
@@ -274,7 +293,7 @@ export default function Header() {
                 {/* Mobile CTAs */}
                 <div className="space-y-3 px-2">
                   <a
-                    href="https://wa.me/919511802062"
+                    href={`https://wa.me/${contact.whatsapp.replace(/[^0-9]/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-semibold
@@ -285,7 +304,7 @@ export default function Header() {
                     Chat on WhatsApp
                   </a>
                   <a
-                    href="tel:+919511802062"
+                    href={`tel:${contact.phone.replace(/[^0-9+]/g, '')}`}
                     className="flex items-center justify-center gap-2 w-full btn-primary"
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
