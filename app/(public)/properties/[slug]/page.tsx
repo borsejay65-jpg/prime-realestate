@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Home, ChevronRight, MapPin, Check, Share2, MessageCircle } from 'lucide-react'
-import { demoProperties } from '@/lib/demo-data'
+import { getProperties } from '@/lib/db'
 import { formatPrice, getStatusBadgeClass, getStatusLabel, getWhatsAppLink, getPropertyWhatsAppMessage } from '@/lib/utils'
 import ImageGallery from '@/components/property/ImageGallery'
 import PropertySpecs from '@/components/property/PropertySpecs'
@@ -17,7 +17,7 @@ import toast from 'react-hot-toast'
 export default function PropertyDetailPage() {
   const params = useParams()
   const slug = params.slug as string
-  const property = demoProperties.find(p => p.slug === slug)
+  const property = getProperties().find(p => p.slug === slug)
 
   if (!property) {
     return (

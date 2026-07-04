@@ -2,10 +2,12 @@
 
 import Link from 'next/link'
 import { ArrowRight, ChevronRight, Home } from 'lucide-react'
-import { demoBlogs } from '@/lib/demo-data'
+import { getBlogs } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 
 export default function BlogPage() {
+  const blogs = getBlogs()
+
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark pt-24 pb-16">
       <div className="container-custom">
@@ -20,7 +22,7 @@ export default function BlogPage() {
           <p className="section-subtitle mx-auto">Expert advice and market insights for property buyers and investors</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {demoBlogs.map(blog => (
+          {blogs.map(blog => (
             <Link key={blog.id} href={`/blog/${blog.slug}`} className="card group block">
               <div className="aspect-[16/10] overflow-hidden">
                 <img src={blog.featured_image || ''} alt={blog.title} loading="lazy"

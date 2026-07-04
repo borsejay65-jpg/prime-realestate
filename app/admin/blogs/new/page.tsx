@@ -38,13 +38,34 @@ export default function NewBlogPostPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    console.log('Saved post:', {
-      ...form,
-      tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
-    })
-    toast.success('Blog post created successfully (Demo Mode)!')
-    router.push('/admin/blogs')
+    await new Promise(r => setTimeout(r, 600))
+    
+    try {
+      const { getBlogs, saveBlogs } = require('@/lib/db')
+      const currentList = getBlogs()
+      const newId = Math.random().toString(36).substr(2, 9)
+      const newPost = {
+        id: newId,
+        title: form.title,
+        slug: form.slug || generateSlug(form.title),
+        excerpt: form.excerpt,
+        content: form.content,
+        featured_image: form.featured_image || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&h=600&fit=crop',
+        status: form.status,
+        tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
+        views: 0,
+        seo_title: form.seo_title || form.title,
+        seo_description: form.seo_description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      saveBlogs([newPost, ...currentList])
+      toast.success('Blog post created successfully!')
+      router.push('/admin/blogs')
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to create post')
+    }
     setLoading(false)
   }
 

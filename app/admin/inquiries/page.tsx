@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Search, Download, Trash2, Eye, Filter } from 'lucide-react'
-import { demoInquiries } from '@/lib/demo-data'
+import { Search, Download, Trash2, Eye, Filter, X } from 'lucide-react'
+import { getInquiries, saveInquiries } from '@/lib/db'
 import { formatDate, getInquiryStatusColor, getInquiryStatusLabel } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
@@ -12,7 +12,7 @@ interface Inquiry {
 
 export default function AdminInquiriesPage() {
   const [inquiries, setInquiries] = useState<Inquiry[]>(() =>
-    demoInquiries.map((inq: any) => ({
+    getInquiries().map((inq: any) => ({
       ...inq,
       name: inq.name || inq.customer_name || 'Anonymous',
       phone: inq.phone || inq.customer_phone || '',
@@ -32,7 +32,9 @@ export default function AdminInquiriesPage() {
   })
 
   const handleUpdateStatus = (id: string, nextStatus: string) => {
-    setInquiries(prev => prev.map(inq => inq.id === id ? { ...inq, status: nextStatus } : inq))
+    const updated = inquiries.map(inq => inq.id === id ? { ...inq, status: nextStatus } : inq)
+    setInquiries(updated)
+    saveInquiries(updated)
     if (selectedInquiry?.id === id) {
       setSelectedInquiry(prev => prev ? { ...prev, status: nextStatus } : null)
     }
@@ -41,7 +43,9 @@ export default function AdminInquiriesPage() {
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this lead?')) {
-      setInquiries(prev => prev.filter(inq => inq.id !== id))
+      const updated = inquiries.filter(inq => inq.id !== id)
+      setInquiries(updated)
+      saveInquiries(updated)
       if (selectedInquiry?.id === id) setSelectedInquiry(null)
       toast.success('Inquiry deleted successfully!')
     }
@@ -92,8 +96,8 @@ export default function AdminInquiriesPage() {
                   onChange={e => setSearch(e.target.value)}
                 />
               </div>
-              <div className="flex gap-2">
-                <select className="select min-w-[120px]" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+              <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                <select className="select min-w-0" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
                   <option value="">All Status</option>
                   <option value="new">New</option>
                   <option value="contacted">Contacted</option>
@@ -101,7 +105,7 @@ export default function AdminInquiriesPage() {
                   <option value="closed">Closed / Won</option>
                   <option value="lost">Lost</option>
                 </select>
-                <select className="select min-w-[120px]" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
+                <select className="select min-w-0" value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}>
                   <option value="">All Sources</option>
                   <option value="WhatsApp">WhatsApp</option>
                   <option value="Call">Direct Call</option>
@@ -180,9 +184,14 @@ export default function AdminInquiriesPage() {
                   <h2 className="text-lg font-bold text-gray-800 dark:text-white">{selectedInquiry.name}</h2>
                   <p className="text-xs text-gray-400 mt-1">{formatDate(selectedInquiry.created_at)}</p>
                 </div>
-                <span className={`badge ${getInquiryStatusColor(selectedInquiry.status)}`}>
-                  {getInquiryStatusLabel(selectedInquiry.status)}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className={`badge ${getInquiryStatusColor(selectedInquiry.status)}`}>
+                    {getInquiryStatusLabel(selectedInquiry.status)}
+                  </span>
+                  <button onClick={() => setSelectedInquiry(null)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3 text-sm">

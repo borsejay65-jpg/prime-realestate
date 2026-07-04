@@ -3,13 +3,13 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Edit2, Trash2, Star, Eye, Copy } from 'lucide-react'
-import { demoProperties } from '@/lib/demo-data'
+import { getProperties, saveProperties } from '@/lib/db'
 import { formatPrice, getStatusBadgeClass, getStatusLabel, getPropertyTypeLabel } from '@/lib/utils'
 import type { Property } from '@/types/database'
 import toast from 'react-hot-toast'
 
 export default function AdminPropertiesPage() {
-  const [properties, setProperties] = useState<Property[]>(demoProperties)
+  const [properties, setProperties] = useState<Property[]>(() => getProperties())
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -24,13 +24,17 @@ export default function AdminPropertiesPage() {
   }, [properties, search, typeFilter, statusFilter])
 
   const handleToggleFeatured = (id: string) => {
-    setProperties(prev => prev.map(p => p.id === id ? { ...p, is_featured: !p.is_featured } : p))
+    const updated = properties.map(p => p.id === id ? { ...p, is_featured: !p.is_featured } : p)
+    setProperties(updated)
+    saveProperties(updated)
     toast.success('Property featured status updated!')
   }
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this property?')) {
-      setProperties(prev => prev.filter(p => p.id !== id))
+      const updated = properties.filter(p => p.id !== id)
+      setProperties(updated)
+      saveProperties(updated)
       toast.success('Property deleted successfully!')
     }
   }
@@ -44,7 +48,9 @@ export default function AdminPropertiesPage() {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
-    setProperties(prev => [duplicated, ...prev])
+    const updated = [duplicated, ...properties]
+    setProperties(updated)
+    saveProperties(updated)
     toast.success('Property duplicated successfully!')
   }
 
@@ -69,9 +75,9 @@ export default function AdminPropertiesPage() {
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-4">
+          <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
             <select
-              className="select min-w-[150px]"
+              className="select min-w-0"
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
             >
@@ -82,7 +88,7 @@ export default function AdminPropertiesPage() {
               <option value="commercial">Commercial</option>
             </select>
             <select
-              className="select min-w-[150px]"
+              className="select min-w-0"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >

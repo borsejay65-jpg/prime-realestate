@@ -77,15 +77,74 @@ export default function NewPropertyPage() {
       return
     }
     setLoading(true)
-    // Mock save logic
-    await new Promise(r => setTimeout(r, 1000))
-    console.log('Saved property data:', {
-      ...form,
-      highlights: highlights.filter(h => h.trim() !== ''),
-      images: images.filter(img => img.trim() !== '')
-    })
-    toast.success('Property created successfully (Demo Mode)!')
-    router.push('/admin/properties')
+    await new Promise(r => setTimeout(r, 600))
+    
+    try {
+      const { getProperties, saveProperties } = require('@/lib/db')
+      const currentList = getProperties()
+      const newId = Math.random().toString(36).substr(2, 9)
+      
+      const propertyImages = images
+        .filter(img => img.trim() !== '')
+        .map((url, index) => ({
+          id: Math.random().toString(36).substr(2, 9),
+          property_id: newId,
+          url: url,
+          caption: `Gallery Image ${index + 1}`,
+          display_order: index,
+          is_thumbnail: index === 0,
+          created_at: new Date().toISOString()
+        }))
+
+      const newProperty = {
+        id: newId,
+        property_id: `PA-2026-${Math.floor(100 + Math.random() * 900)}`,
+        title: form.title,
+        slug: form.slug || generateSlug(form.title),
+        description: form.description,
+        highlights: highlights.filter(h => h.trim() !== ''),
+        property_type: form.property_type,
+        status: form.status,
+        construction_status: form.construction_status,
+        price: Number(form.price) || 0,
+        price_label: form.price_label || '',
+        price_negotiable: form.price_negotiable,
+        area_sqft: Number(form.area_sqft) || 0,
+        bedrooms: Number(form.bedrooms) || 0,
+        bathrooms: Number(form.bathrooms) || 0,
+        balcony: Number(form.balcony) || 0,
+        parking: Number(form.parking) || 0,
+        floor: Number(form.floor) || 0,
+        total_floors: Number(form.total_floors) || 0,
+        facing: form.facing,
+        ownership: form.ownership,
+        possession_date: form.possession_date || null,
+        address: form.location,
+        location: form.location,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        map_embed_url: form.map_embed_url,
+        thumbnail_url: form.thumbnail_url || (propertyImages[0] ? propertyImages[0].url : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'),
+        is_featured: form.is_featured,
+        is_active: form.is_published,
+        is_draft: !form.is_published,
+        views: 0,
+        inquiry_count: 0,
+        seo_title: form.seo_title || form.title,
+        seo_description: form.seo_description || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        images: propertyImages
+      }
+      
+      saveProperties([newProperty, ...currentList])
+      toast.success('Property created successfully!')
+      router.push('/admin/properties')
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to create property')
+    }
     setLoading(false)
   }
 

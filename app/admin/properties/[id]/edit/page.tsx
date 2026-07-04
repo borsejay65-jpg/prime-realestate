@@ -5,8 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { ArrowLeft, Save, Plus, X, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+import { getProperties, saveProperties } from '@/lib/db'
 import { generateSlug, PROPERTY_TYPES, PROPERTY_STATUSES, FACING_OPTIONS, OWNERSHIP_OPTIONS } from '@/lib/utils'
-import { demoProperties } from '@/lib/demo-data'
 
 export default function EditPropertyPage() {
   const router = useRouter()
@@ -50,7 +50,7 @@ export default function EditPropertyPage() {
   })
 
   useEffect(() => {
-    const property = demoProperties.find(p => p.id === id)
+    const property = getProperties().find(p => p.id === id)
     if (property) {
       setForm({
         title: property.title || '',
@@ -82,7 +82,7 @@ export default function EditPropertyPage() {
         seo_title: property.seo_title || '',
         seo_description: property.seo_description || '',
         is_featured: property.is_featured || false,
-        is_published: property.is_published || true
+        is_published: !property.is_draft,
       })
       if (property.highlights && property.highlights.length > 0) {
         setHighlights(property.highlights)
@@ -124,9 +124,74 @@ export default function EditPropertyPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 1000))
-    toast.success('Property updated successfully (Demo Mode)!')
-    router.push('/admin/properties')
+    await new Promise(r => setTimeout(r, 600))
+    
+    try {
+      const currentList = getProperties()
+      const propertyIndex = currentList.findIndex(p => p.id === id)
+      
+      if (propertyIndex !== -1) {
+        const propertyImages = images
+          .filter(img => img.trim() !== '')
+          .map((url, index) => ({
+            id: Math.random().toString(36).substr(2, 9),
+            property_id: id,
+            url: url,
+            caption: `Gallery Image ${index + 1}`,
+            display_order: index,
+            is_thumbnail: index === 0,
+            created_at: new Date().toISOString()
+          }))
+
+        const updatedProperty = {
+          ...currentList[propertyIndex],
+          title: form.title,
+          slug: form.slug || generateSlug(form.title),
+          description: form.description,
+          highlights: highlights.filter(h => h.trim() !== ''),
+          property_type: form.property_type,
+          status: form.status,
+          construction_status: form.construction_status,
+          price: Number(form.price) || 0,
+          price_label: form.price_label || '',
+          price_negotiable: form.price_negotiable,
+          area_sqft: Number(form.area_sqft) || 0,
+          bedrooms: Number(form.bedrooms) || 0,
+          bathrooms: Number(form.bathrooms) || 0,
+          balcony: Number(form.balcony) || 0,
+          parking: Number(form.parking) || 0,
+          floor: Number(form.floor) || 0,
+          total_floors: Number(form.total_floors) || 0,
+          facing: form.facing,
+          ownership: form.ownership,
+          possession_date: form.possession_date || null,
+          address: form.location,
+          location: form.location,
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+          map_embed_url: form.map_embed_url,
+          thumbnail_url: form.thumbnail_url || (propertyImages[0] ? propertyImages[0].url : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'),
+          is_featured: form.is_featured,
+          is_active: form.is_published,
+          is_draft: !form.is_published,
+          seo_title: form.seo_title || form.title,
+          seo_description: form.seo_description || '',
+          updated_at: new Date().toISOString(),
+          images: propertyImages
+        }
+        
+        currentList[propertyIndex] = updatedProperty
+        saveProperties(currentList)
+        toast.success('Property updated successfully!')
+        router.push('/admin/properties')
+      } else {
+        toast.error('Property not found')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to update property')
+    }
     setLoading(false)
   }
 

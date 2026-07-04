@@ -21,14 +21,14 @@ export default function PropertySpecs({ property }: { property: Property }) {
   ].filter(s => s.value !== null && s.value !== undefined)
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
       {specs.map(s => (
-        <div key={s.label} className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
-          <div className="flex items-center gap-2 mb-1">
-            <s.icon className="w-4 h-4 text-gold" />
-            <span className="text-xs text-gray-500 uppercase tracking-wide">{s.label}</span>
+        <div key={s.label} className="bg-gray-50 dark:bg-gray-800 p-3 sm:p-4 rounded-xl">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <s.icon className="w-3.5 h-3.5 text-gold" />
+            <span className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wide">{s.label}</span>
           </div>
-          <p className="font-semibold text-gray-800 dark:text-white">{String(s.value)}</p>
+          <p className="font-semibold text-sm sm:text-base text-gray-800 dark:text-white truncate" title={String(s.value)}>{String(s.value)}</p>
         </div>
       ))}
     </div>

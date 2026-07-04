@@ -3,19 +3,21 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Plus, Search, Edit2, Trash2, Eye } from 'lucide-react'
-import { demoBlogs } from '@/lib/demo-data'
+import { getBlogs, saveBlogs } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 export default function AdminBlogsPage() {
-  const [blogs, setBlogs] = useState(demoBlogs)
+  const [blogs, setBlogs] = useState(() => getBlogs())
   const [search, setSearch] = useState('')
 
   const filtered = blogs.filter(b => b.title.toLowerCase().includes(search.toLowerCase()))
 
   const handleDelete = (id: string) => {
     if (confirm('Are you sure you want to delete this blog post?')) {
-      setBlogs(prev => prev.filter(b => b.id !== id))
+      const updated = blogs.filter(b => b.id !== id)
+      setBlogs(updated)
+      saveBlogs(updated)
       toast.success('Blog post deleted successfully!')
     }
   }

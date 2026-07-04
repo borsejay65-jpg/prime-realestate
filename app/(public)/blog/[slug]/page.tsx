@@ -3,13 +3,14 @@
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { Home, ChevronRight, Eye, Calendar, Phone, MessageCircle, Share2 } from 'lucide-react'
-import { demoBlogs } from '@/lib/demo-data'
+import { getBlogs } from '@/lib/db'
 import { formatDate, getWhatsAppLink } from '@/lib/utils'
 import toast from 'react-hot-toast'
 
 export default function BlogDetailPage() {
   const params = useParams()
-  const blog = demoBlogs.find(b => b.slug === params.slug)
+  const blogs = getBlogs()
+  const blog = blogs.find(b => b.slug === params.slug)
 
   if (!blog) return (
     <div className="min-h-screen flex items-center justify-center pt-24">
@@ -20,7 +21,7 @@ export default function BlogDetailPage() {
     </div>
   )
 
-  const related = demoBlogs.filter(b => b.id !== blog.id).slice(0, 2)
+  const related = blogs.filter(b => b.id !== blog.id).slice(0, 2)
 
   return (
     <div className="min-h-screen bg-background dark:bg-background-dark pt-24 pb-16">

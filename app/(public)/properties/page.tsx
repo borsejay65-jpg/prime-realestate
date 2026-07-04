@@ -5,14 +5,14 @@ import Link from 'next/link'
 import { ChevronRight, Home } from 'lucide-react'
 import PropertyFilters from '@/components/property/PropertyFilters'
 import PropertyGrid from '@/components/property/PropertyGrid'
-import { demoProperties } from '@/lib/demo-data'
+import { getProperties } from '@/lib/db'
 import type { Property } from '@/types/database'
 
 export default function PropertiesPage() {
   const [filters, setFilters] = useState({ search: '', type: '', status: '', minPrice: '', maxPrice: '', bedrooms: '', sort: 'newest' })
 
   const filtered = useMemo(() => {
-    let result = [...demoProperties]
+    let result = [...getProperties()]
     if (filters.search) result = result.filter(p => p.title.toLowerCase().includes(filters.search.toLowerCase()) || p.location.toLowerCase().includes(filters.search.toLowerCase()))
     if (filters.type) result = result.filter(p => p.property_type === filters.type)
     if (filters.status) result = result.filter(p => p.status === filters.status)

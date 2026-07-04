@@ -15,9 +15,30 @@ export default function InquiryForm({ propertyTitle, propertySlug, brochureUrl }
     e.preventDefault()
     if (!form.name || !form.phone) { toast.error('Please fill name and phone'); return }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 800))
-    console.log('Inquiry:', { ...form, property: propertyTitle })
+    await new Promise(r => setTimeout(r, 600))
+    
+    try {
+      const { getInquiries, saveInquiries } = require('@/lib/db')
+      const currentList = getInquiries()
+      const newInquiry = {
+        id: Math.random().toString(36).substr(2, 9),
+        name: form.name,
+        phone: form.phone,
+        email: form.email || '',
+        property_title: propertyTitle,
+        property_slug: propertySlug,
+        message: form.message,
+        source: 'web_form',
+        status: 'new',
+        created_at: new Date().toISOString()
+      }
+      saveInquiries([newInquiry, ...currentList])
+    } catch (err) {
+      console.error('Failed to save inquiry:', err)
+    }
+    
     toast.success('Thank you! Our team will contact you shortly.')
+    setForm(p => ({ ...p, name: '', phone: '', email: '' }))
     setLoading(false)
   }
 

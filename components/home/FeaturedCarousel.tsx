@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { MapPin, BedDouble, Bath, Maximize, ArrowRight } from 'lucide-react'
 import { useInView } from 'react-intersection-observer'
-import { demoProperties } from '@/lib/demo-data'
+import { getProperties } from '@/lib/db'
 import { formatPrice, formatArea, getStatusBadgeClass, getStatusLabel } from '@/lib/utils'
 
 export default function FeaturedCarousel() {
-  const featured = demoProperties.filter(p => p.is_featured)
+  const featured = getProperties().filter(p => p.is_featured)
   const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.1 })
 
   return (

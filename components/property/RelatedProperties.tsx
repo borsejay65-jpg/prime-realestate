@@ -11,9 +11,9 @@ export default function RelatedProperties({ currentId, propertyType, city }: { c
   return (
     <div>
       <h3 className="font-display text-2xl font-bold text-gray-800 dark:text-white mb-6">Similar Properties</h3>
-      <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         {related.map(p => (
-          <div key={p.id} className="min-w-[300px] flex-shrink-0">
+          <div key={p.id} className="w-full">
             <PropertyCard property={p} />
           </div>
         ))}
